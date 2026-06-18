@@ -1,4 +1,5 @@
 venv/
 .env
+sample.png
 __pycache__/
 *.pyc
