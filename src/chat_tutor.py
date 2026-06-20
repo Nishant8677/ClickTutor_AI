@@ -1,4 +1,4 @@
-from tutor import explain_image, model
+from src.tutor import explain_image, model
 
 
 class TutorSession:
