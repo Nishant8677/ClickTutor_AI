@@ -3,3 +3,6 @@ venv/
 sample.png
 __pycache__/
 *.pyc
+temp_image.png
+selected_region.png
+screenshot.png

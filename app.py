@@ -1,3 +1,4 @@
+from PIL import Image
 import streamlit as st
 from src.chat_tutor import TutorSession
 
@@ -52,8 +53,16 @@ with st.sidebar:
 if uploaded_file:
 
     # Save uploaded image
+
     with open("temp_image.png", "wb") as f:
         f.write(uploaded_file.getbuffer())
+
+    image = Image.open("temp_image.png")
+
+    # Default image
+
+    if "selected_image" not in st.session_state:
+        st.session_state.selected_image = "temp_image.png"
 
     col1, col2 = st.columns([1, 2])
 
@@ -69,6 +78,72 @@ if uploaded_file:
             use_container_width=True
         )
 
+        st.subheader("🎯 Select Region Center")
+
+        x = st.number_input(
+            "X Coordinate",
+            min_value=0,
+            max_value=image.width,
+            value=image.width // 2
+        )
+
+        y = st.number_input(
+            "Y Coordinate",
+            min_value=0,
+            max_value=image.height,
+            value=image.height // 2
+        )
+
+        if st.button("Preview Crop"):
+
+            crop_size = 300
+
+            left = max(
+                0,
+                x - crop_size // 2
+            )
+
+            top = max(
+                0,
+                y - crop_size // 2
+            )
+
+            right = min(
+                image.width,
+                x + crop_size // 2
+            )
+
+            bottom = min(
+                image.height,
+                y + crop_size // 2
+            )
+
+            cropped = image.crop(
+                (
+                    left,
+                    top,
+                    right,
+                    bottom
+                )
+            )
+
+            cropped.save(
+                "selected_region.png"
+            )
+
+            st.session_state.selected_image = (
+                "selected_region.png"
+            )
+
+            st.image(
+                cropped,
+                caption="Selected Region"
+            )
+
+        st.caption(
+            f"Current Image: {st.session_state.selected_image}"
+        )
+
     # ==================================
     # EXPLANATION
     # ==================================
@@ -77,12 +152,16 @@ if uploaded_file:
 
         if st.button("📚 Explain"):
 
+            image_path = (
+                st.session_state.selected_image
+            )
+
             with st.spinner(
                 "📚 Analyzing screenshot..."
             ):
 
                 session = TutorSession(
-                    "temp_image.png",
+                    image_path,
                     mode=mode
                 )
 
@@ -109,8 +188,6 @@ if uploaded_file:
 
         st.subheader("💬 Chat with ClickTutor")
 
-        # Display conversation
-
         for msg in st.session_state.messages:
 
             if msg["role"] == "user":
@@ -135,15 +212,11 @@ if uploaded_file:
                         msg["content"]
                     )
 
-        # Chat input
-
         prompt = st.chat_input(
             "Ask a follow-up question..."
         )
 
         if prompt:
-
-            # Add user message
 
             st.session_state.messages.append(
                 {
@@ -151,8 +224,6 @@ if uploaded_file:
                     "content": prompt
                 }
             )
-
-            # Generate answer
 
             with st.spinner(
                 "🎓 ClickTutor is thinking..."
@@ -163,8 +234,6 @@ if uploaded_file:
                         prompt
                     )
                 )
-
-            # Add assistant message
 
             st.session_state.messages.append(
                 {
