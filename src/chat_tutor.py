@@ -1,3 +1,4 @@
+from PIL import Image
 from src.tutor import explain_image, model
 
 
@@ -17,18 +18,18 @@ class TutorSession:
 
     def ask(self, question):
 
-        recent_history = self.history[-10:]
+    	recent_history = self.history[-10:]
 
-        history_text = ""
+    	history_text = ""
 
-        for item in recent_history:
+    	for item in recent_history:
 
-            history_text += (
-                f"{item['role']}: "
-                f"{item['content']}\n"
-            )
+        	history_text += (
+            	f"{item['role']}: "
+            	f"{item['content']}\n"
+        	)
 
-        prompt = f"""
+    	prompt = f"""
 You are continuing a tutoring session.
 
 ORIGINAL EXPLANATION:
@@ -43,26 +44,34 @@ CURRENT STUDENT QUESTION:
 
 {question}
 
+IMPORTANT:
+You can see the screenshot again.
+Use BOTH the screenshot and the conversation history
+to answer accurately.
+
 Answer naturally as a tutor.
-Use previous conversation if relevant.
 """
 
-        response = model.generate_content(prompt)
+    	image = Image.open(self.image_path)
 
-        answer = response.text
+    	response = model.generate_content([
+    	prompt,
+    	image
+   	])
+    	answer = response.text
 
-        self.history.append(
-            {
-                "role": "user",
-                "content": question
-            }
-        )
+    	self.history.append(
+        {
+            "role": "user",
+            "content": question
+        }
+    	)
 
-        self.history.append(
-            {
-                "role": "assistant",
-                "content": answer
-            }
-        )
+    	self.history.append(
+        {
+            "role": "assistant",
+            "content": answer
+        }
+    	)
 
-        return answer
+    	return answer
