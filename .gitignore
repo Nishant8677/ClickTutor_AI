@@ -1,8 +1,10 @@
 venv/
 .env
 sample.png
+sample2.png
 __pycache__/
 *.pyc
 temp_image.png
 selected_region.png
 screenshot.png
+highlighted_image.png

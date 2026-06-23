@@ -1,3 +1,5 @@
+import re
+
 from PIL import Image
 from src.tutor import explain_image, model
 
@@ -16,6 +18,44 @@ class TutorSession:
         # Conversation history
         self.history = []
 
+    def get_visual_location(self, answer):
+
+        match = re.search(
+            r"VISUAL LOCATION:\s*(.*)",
+            answer,
+            re.IGNORECASE
+        )
+
+        if match:
+
+            return (
+                match.group(1)
+                .strip()
+                .lower()
+            )
+
+        return None
+    
+    def get_size(self, answer):
+
+        import re
+
+        match = re.search(
+            r"SIZE:\s*(.*)",
+            answer,
+            re.IGNORECASE
+        )
+
+        if match:
+
+            return (
+                match.group(1)
+                .strip()
+                .lower()
+            )
+
+        return "medium"
+    
     def ask(self, question):
         # Keep only recent conversation
         recent_history = self.history[-10:]
@@ -77,22 +117,41 @@ state that it appears truncated.
 Do not invent the missing characters.
 Do not assume abbreviations.
 
-When describing the visual location:
+For VISUAL LOCATION:
 
-- Mention approximate screen position.
-- Examples:
-    - top-left
-    - top-center
-    - top-right
-    - center-left
-    - center
-    - center-right
-    - bottom-left
-    - bottom-center
-    - bottom-right
+Return ONLY ONE of:
 
-- Mention color if relevant.
-- Mention nearby labels if useful.
+top-left
+top-center
+top-right
+center-left
+center
+center-right
+bottom-left
+bottom-center
+bottom-right
+
+Do not add any extra words,
+punctuation, explanation,
+colors, labels, or descriptions.
+
+For SIZE:
+
+small:
+- single word
+- single metric
+- single button
+- single label
+
+medium:
+- group of nearby metrics
+- one section of the screen
+
+large:
+- major panel
+- large chart
+- large code block
+- multiple sections
 
 Format:
 
@@ -104,6 +163,9 @@ RELEVANT AREA:
 
 VISUAL LOCATION:
 ...
+
+SIZE:
+small | medium | large
 
 WHY I CHOSE IT:
 ...

@@ -1,6 +1,7 @@
 from PIL import Image
 import streamlit as st
 from src.chat_tutor import TutorSession
+from src.highlighter import highlight_region
 
 # ==================================
 # PAGE CONFIG
@@ -75,7 +76,7 @@ if uploaded_file:
         st.image(
             uploaded_file,
             caption="Uploaded Screenshot",
-            use_container_width=True
+            width="stretch"
         )
 
         st.subheader("🎯 Select Region Center")
@@ -184,6 +185,17 @@ if uploaded_file:
 
     if "session" in st.session_state:
 
+        if "highlighted_image" in st.session_state:
+
+            st.subheader(
+                "🎯 ClickTutor Focus Area"
+            )
+
+            st.image(
+                st.session_state.highlighted_image,
+                width="stretch"
+            )
+
         st.divider()
 
         st.subheader("💬 Chat with ClickTutor")
@@ -234,6 +246,30 @@ if uploaded_file:
                         prompt
                     )
                 )
+
+                location = (
+                    st.session_state.session
+                    .get_visual_location(answer)
+                )
+
+                size = (
+                    st.session_state.session
+                    .get_size(answer)
+                )
+
+                if location:
+
+                    highlighted_path = (
+                        highlight_region(
+                            st.session_state.session.image_path,
+                            location,
+                            size
+                        )
+                    )
+
+                    st.session_state.highlighted_image = (
+                        highlighted_path
+                    )
 
             st.session_state.messages.append(
                 {
