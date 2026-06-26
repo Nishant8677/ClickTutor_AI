@@ -103,6 +103,10 @@ if uploaded_file:
 
             "highlighted_image",
 
+            "lesson_steps",
+
+            "lesson_index",
+
             "selected_image"
 
         ]:
@@ -236,9 +240,10 @@ if uploaded_file:
             st.session_state.session = session
             st.session_state.messages = []
 
-            # Remove any highlight from a previous session
-            if "highlighted_image" in st.session_state:
-                del st.session_state["highlighted_image"]
+            # Remove previous guided lesson state
+            for key in ["highlighted_image", "lesson_steps", "lesson_index"]:
+                if key in st.session_state:
+                    del st.session_state[key]
 
         if "session" in st.session_state:
 
@@ -256,7 +261,61 @@ if uploaded_file:
 
     if "session" in st.session_state:
 
-        if "highlighted_image" in st.session_state:
+        if "lesson_steps" in st.session_state and st.session_state.lesson_steps:
+
+            steps = st.session_state.lesson_steps
+            index = st.session_state.get("lesson_index", 0)
+            index = max(0, min(index, len(steps) - 1))
+            st.session_state.lesson_index = index
+            step = steps[index]
+
+            st.subheader("🎯 Guided Lesson")
+
+            st.image(
+                step.get("highlighted_image")
+                or st.session_state.session.image_path,
+                width="stretch"
+            )
+
+            with st.container(border=True):
+                st.caption(
+                    f"Step {index + 1} of {len(steps)}"
+                )
+
+                if step.get("visible_text"):
+                    st.markdown(
+                        f"**Focus:** `{step['visible_text']}`"
+                    )
+
+                st.markdown(
+                    step.get("explanation", "")
+                )
+
+                prev_col, count_col, next_col = st.columns([1, 1, 1])
+
+                with prev_col:
+                    if st.button(
+                        "◀ Previous",
+                        disabled=index == 0
+                    ):
+                        st.session_state.lesson_index = index - 1
+                        st.rerun()
+
+                with count_col:
+                    st.markdown(
+                        f"<div style='text-align:center'>{index + 1} / {len(steps)}</div>",
+                        unsafe_allow_html=True
+                    )
+
+                with next_col:
+                    if st.button(
+                        "Next ▶",
+                        disabled=index == len(steps) - 1
+                    ):
+                        st.session_state.lesson_index = index + 1
+                        st.rerun()
+
+        elif "highlighted_image" in st.session_state:
 
             st.subheader(
                 "🎯 ClickTutor Focus Area"
@@ -312,11 +371,15 @@ if uploaded_file:
                 "🎓 ClickTutor is thinking..."
             ):
 
-                answer, highlighted = (
+                answer, highlighted, lesson_steps = (
                     st.session_state.session.ask(
                         prompt
                     )
                 )
+
+                if lesson_steps:
+                    st.session_state.lesson_steps = lesson_steps
+                    st.session_state.lesson_index = 0
 
                 if highlighted:
 
