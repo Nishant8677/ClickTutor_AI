@@ -3,6 +3,27 @@ import re
 from PIL import Image
 from src.tutor import explain_image, model
 
+from src.ocr_locator import (
+    extract_ocr_data,
+    find_text
+)
+
+from src.highlighter import highlight_box
+
+
+def get_visible_text(response):
+
+    match = re.search(
+        r"VISIBLE TEXT:\s*(.+)",
+        response,
+        re.IGNORECASE
+    )
+
+    if match:
+        return match.group(1).strip()
+
+    return None
+
 
 class TutorSession:
     def __init__(self, image_path, mode="student"):
@@ -17,6 +38,11 @@ class TutorSession:
 
         # Conversation history
         self.history = []
+
+        # Cache OCR data once
+        self.ocr_data = extract_ocr_data(
+            self.image_path
+        )
 
     def get_visual_location(self, answer):
 
@@ -35,10 +61,8 @@ class TutorSession:
             )
 
         return None
-    
-    def get_size(self, answer):
 
-        import re
+    def get_size(self, answer):
 
         match = re.search(
             r"SIZE:\s*(.*)",
@@ -55,7 +79,7 @@ class TutorSession:
             )
 
         return "medium"
-    
+
     def ask(self, question):
         # Keep only recent conversation
         recent_history = self.history[-10:]
@@ -69,9 +93,11 @@ class TutorSession:
             )
 
         prompt = f"""
+
 You are ClickTutor.
 
 You are looking at:
+
 1. A screenshot
 2. Previous conversation
 3. A new student question
@@ -86,74 +112,68 @@ CURRENT QUESTION:
 {question}
 
 TASK 1:
-Identify the exact visible text most relevant
-to the student's question.
+
+If the student's question mentions a visible word,
+phrase, variable, button, function, metric,
+or label,
+
+return THAT exact visible text.
+
+Only return explanatory text if the thing being
+asked about is not itself visible.
+
+Examples:
+
+Question:
+What does READY mean?
+
+VISIBLE TEXT:
+READY
+
+Question:
+What does in-place mean?
+
+VISIBLE TEXT:
+in-place
+
+Question:
+What is Deviation?
+
+VISIBLE TEXT:
+Deviation
+
+Question:
+Explain this paragraph.
+
+VISIBLE TEXT:
+NONE
 
 TASK 2:
-Describe where that text appears on the screen.
+Briefly describe the area containing that text.
 
 TASK 3:
-Explain WHY you selected that area.
+Explain why you selected that text.
 
 TASK 4:
-Explain it like a tutor.
+Teach the concept like an excellent personal tutor.
 
-IMPORTANT:
+IMPORTANT RULES:
 
-Use ONLY information directly visible in the screenshot.
+- Use ONLY information that is directly visible in the screenshot.
+- Never invent missing text.
+- Never guess hidden or cropped words.
+- If text appears truncated, explicitly say it appears truncated.
+- If the exact item cannot be found, say:
+  "I cannot find that item in the screenshot."
+- Do not substitute similar words.
+- Do not infer abbreviations.
+- The VISIBLE TEXT should be copied exactly as it appears in the screenshot.
+- Keep VISIBLE TEXT as short as possible.
+- Prefer a single word or short phrase whenever possible.
+- If the student asks about an entire section or the whole image, write:
+  VISIBLE TEXT: NONE
 
-If the exact item mentioned by the user
-cannot be found in the image, say:
-
-"I cannot find that item in the screenshot."
-
-Do NOT guess.
-Do NOT substitute a similar term.
-Do NOT infer missing labels.
-
-If visible text appears truncated,
-state that it appears truncated.
-
-Do not invent the missing characters.
-Do not assume abbreviations.
-
-For VISUAL LOCATION:
-
-Return ONLY ONE of:
-
-top-left
-top-center
-top-right
-center-left
-center
-center-right
-bottom-left
-bottom-center
-bottom-right
-
-Do not add any extra words,
-punctuation, explanation,
-colors, labels, or descriptions.
-
-For SIZE:
-
-small:
-- single word
-- single metric
-- single button
-- single label
-
-medium:
-- group of nearby metrics
-- one section of the screen
-
-large:
-- major panel
-- large chart
-- large code block
-- multiple sections
-
-Format:
+Format your response exactly like this:
 
 VISIBLE TEXT:
 ...
@@ -161,33 +181,59 @@ VISIBLE TEXT:
 RELEVANT AREA:
 ...
 
-VISUAL LOCATION:
-...
-
-SIZE:
-small | medium | large
-
 WHY I CHOSE IT:
 ...
 
 EXPLANATION:
 ...
 
-Use the screenshot actively.
-Do not explain unrelated parts of the image.
+Your explanation should:
+- Be clear and beginner-friendly.
+- Build intuition before giving technical details.
+- Stay focused only on the student's question.
+- Do not explain unrelated parts of the screenshot.
+
 """
 
         try:
             with Image.open(self.image_path) as image:
+                print("Before Gemini")
                 response = model.generate_content([
                     prompt,
                     image
                 ])
+                print("After Gemini")
 
             answer = response.text
 
+            visible_text = get_visible_text(answer)
+            print("VISIBLE TEXT:")
+            print(visible_text)
+
+            highlighted_image = None
+
+            if visible_text and visible_text.strip().upper() != "NONE":
+
+                box = find_text(
+                    self.ocr_data,
+                    visible_text
+                )
+
+                if box:
+                    print("VISIBLE TEXT:", visible_text)
+                    print("BOX:", box)
+                    print("Calling highlighter...")
+
+                    highlighted_image = highlight_box(
+                        self.image_path,
+                        box
+                    )
+
         except Exception as e:
+
             answer = f"Error: {str(e)}"
+
+            highlighted_image = None
 
         self.history.append(
             {
@@ -203,4 +249,4 @@ Do not explain unrelated parts of the image.
             }
         )
 
-        return answer
+        return answer, highlighted_image

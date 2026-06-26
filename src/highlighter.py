@@ -1,124 +1,90 @@
 from PIL import Image, ImageDraw
 
 
-def highlight_region(
-    image_path,
-    location,
-    size="medium"
-):
+def highlight_box(image_path, box):
 
-    image = Image.open(image_path)
+    """
+    Draws a red rectangle around the OCR-detected text.
 
-    width, height = image.size
+    Parameters
+    ----------
+    image_path : str
+        Path to the image.
+
+    box : dict
+        Dictionary returned by ocr_locator.py
+
+        Example:
+        {
+            "left": 120,
+            "top": 80,
+            "width": 65,
+            "height": 20
+        }
+
+    Returns
+    -------
+    str
+        Path to highlighted image.
+    """
+
+    image = Image.open(image_path).convert("RGB")
+
+    if box is None:
+        output_path = "highlighted_image.png"
+        image.save(output_path)
+        print("No OCR box found; returning unmodified image.")
+        return output_path
 
     draw = ImageDraw.Draw(image)
 
-    regions = {
-        "top-left": (
-            0,
-            0,
-            width // 3,
-            height // 3
-        ),
+    if box is not None:
+        print("BOX RECEIVED:", box)
 
-        "top-center": (
-            width // 3,
-            0,
-            2 * width // 3,
-            height // 3
-        ),
+        left = box["left"]
+        top = box["top"]
 
-        "top-right": (
-            2 * width // 3,
-            0,
-            width,
-            height // 3
-        ),
+        width = max(1, box["width"])
+        height = max(1, box["height"])
 
-        "center-left": (
-            0,
-            height // 3,
-            width // 3,
-            2 * height // 3
-        ),
+        right = left + width
+        bottom = top + height
 
-        "center": (
-            width // 3,
-            height // 3,
-            2 * width // 3,
-            2 * height // 3
-        ),
-
-        "center-right": (
-            2 * width // 3,
-            height // 3,
-            width,
-            2 * height // 3
-        ),
-
-        "bottom-left": (
-            0,
-            2 * height // 3,
-            width // 3,
-            height
-        ),
-
-        "bottom-center": (
-            width // 3,
-            2 * height // 3,
-            2 * width // 3,
-            height
-        ),
-
-        "bottom-right": (
-            2 * width // 3,
-            2 * height // 3,
-            width,
-            height
+        print(
+            f"left={left}, top={top}, right={right}, bottom={bottom}"
         )
-    }
 
-    if location in regions:
+        # Padding around the detected text
+        padding = 6
 
-        x1, y1, x2, y2 = regions[location]
+        left = max(0, left - padding)
+        top = max(0, top - padding)
 
-        cx = (x1 + x2) // 2
-        cy = (y1 + y2) // 2
-
-        if size == "small":
-
-            box_w = (x2 - x1) // 2
-            box_h = (y2 - y1) // 2
-
-        elif size == "large":
-
-            box_w = int((x2 - x1) * 0.9)
-            box_h = int((y2 - y1) * 0.9)
-
-        else:
-
-            box_w = int((x2 - x1) * 0.7)
-            box_h = int((y2 - y1) * 0.7)
-
-        new_x1 = max(0, cx - box_w // 2)
-        new_y1 = max(0, cy - box_h // 2)
-
-        new_x2 = min(width, cx + box_w // 2)
-        new_y2 = min(height, cy + box_h // 2)
+        right = min(image.width, right + padding)
+        bottom = min(image.height, bottom + padding)
 
         draw.rectangle(
             (
-                new_x1,
-                new_y1,
-                new_x2,
-                new_y2
+                left,
+                top,
+                right,
+                bottom
             ),
             outline="red",
-            width=6
+            width=4
         )
 
     output_path = "highlighted_image.png"
 
     image.save(output_path)
+
+    print("RETURNING:", {
+        "left": left,
+        "top": top,
+        "width": right - left,
+        "height": bottom - top
+    })
+    print("Original image size:", image.width, image.height)
+    print("OCR box:", box)
 
     return output_path

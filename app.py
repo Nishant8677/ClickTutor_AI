@@ -1,7 +1,7 @@
 from PIL import Image
 import streamlit as st
 from src.chat_tutor import TutorSession
-from src.highlighter import highlight_region
+
 
 # ==================================
 # PAGE CONFIG
@@ -53,16 +53,53 @@ with st.sidebar:
 
 if uploaded_file:
 
-    # Save uploaded image
+    # ==================================
+    # SAVE UPLOADED IMAGE
+    # ==================================
 
     with open("temp_image.png", "wb") as f:
         f.write(uploaded_file.getbuffer())
 
+    # ==================================
+    # DETECT IMAGE CHANGES
+    # ==================================
+
+    current_image = uploaded_file.getvalue()
+
+    if "last_uploaded_image" not in st.session_state:
+
+        st.session_state.last_uploaded_image = current_image
+
+    elif current_image != st.session_state.last_uploaded_image:
+
+        print("New image detected")
+
+        st.session_state.last_uploaded_image = current_image
+
+        for key in [
+
+            "session",
+
+            "messages",
+
+            "highlighted_image",
+
+            "selected_image"
+
+        ]:
+
+            if key in st.session_state:
+
+                del st.session_state[key]
+
     image = Image.open("temp_image.png")
 
-    # Default image
+    # ==================================
+    # DEFAULT IMAGE
+    # ==================================
 
     if "selected_image" not in st.session_state:
+
         st.session_state.selected_image = "temp_image.png"
 
     col1, col2 = st.columns([1, 2])
@@ -169,6 +206,10 @@ if uploaded_file:
             st.session_state.session = session
             st.session_state.messages = []
 
+            # Remove any highlight from a previous session
+            if "highlighted_image" in st.session_state:
+                del st.session_state["highlighted_image"]
+
         if "session" in st.session_state:
 
             st.subheader("📖 Explanation")
@@ -241,35 +282,15 @@ if uploaded_file:
                 "🎓 ClickTutor is thinking..."
             ):
 
-                answer = (
+                answer, highlighted = (
                     st.session_state.session.ask(
                         prompt
                     )
                 )
 
-                location = (
-                    st.session_state.session
-                    .get_visual_location(answer)
-                )
+                if highlighted:
 
-                size = (
-                    st.session_state.session
-                    .get_size(answer)
-                )
-
-                if location:
-
-                    highlighted_path = (
-                        highlight_region(
-                            st.session_state.session.image_path,
-                            location,
-                            size
-                        )
-                    )
-
-                    st.session_state.highlighted_image = (
-                        highlighted_path
-                    )
+                    st.session_state.highlighted_image = highlighted
 
             st.session_state.messages.append(
                 {
