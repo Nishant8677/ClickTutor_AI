@@ -1,6 +1,30 @@
+from pathlib import Path
+from uuid import uuid4
+
 from PIL import Image
 import streamlit as st
 from src.chat_tutor import TutorSession
+
+
+SESSION_ROOT = Path(".clicktutor_sessions")
+
+
+def get_session_dir():
+    if "session_dir" not in st.session_state:
+        session_dir = SESSION_ROOT / uuid4().hex
+        session_dir.mkdir(parents=True, exist_ok=True)
+        st.session_state.session_dir = str(session_dir)
+
+    return Path(st.session_state.session_dir)
+
+
+def image_suffix(filename):
+    suffix = Path(filename or "uploaded.png").suffix.lower()
+
+    if suffix not in [".png", ".jpg", ".jpeg"]:
+        return ".png"
+
+    return suffix
 
 
 # ==================================
@@ -53,24 +77,19 @@ with st.sidebar:
 
 if uploaded_file:
 
-    # ==================================
-    # SAVE UPLOADED IMAGE
-    # ==================================
-
-    with open("temp_image.png", "wb") as f:
-        f.write(uploaded_file.getbuffer())
+    session_dir = get_session_dir()
+    current_image = uploaded_file.getvalue()
 
     # ==================================
     # DETECT IMAGE CHANGES
     # ==================================
 
-    current_image = uploaded_file.getvalue()
+    image_changed = (
+        "last_uploaded_image" not in st.session_state
+        or current_image != st.session_state.last_uploaded_image
+    )
 
-    if "last_uploaded_image" not in st.session_state:
-
-        st.session_state.last_uploaded_image = current_image
-
-    elif current_image != st.session_state.last_uploaded_image:
+    if image_changed:
 
         print("New image detected")
 
@@ -92,7 +111,16 @@ if uploaded_file:
 
                 del st.session_state[key]
 
-    image = Image.open("temp_image.png")
+        upload_path = session_dir / f"uploaded{image_suffix(uploaded_file.name)}"
+
+        with open(upload_path, "wb") as f:
+            f.write(current_image)
+
+        st.session_state.uploaded_image = str(upload_path)
+        st.session_state.selected_image = str(upload_path)
+
+    image_path = st.session_state.uploaded_image
+    image = Image.open(image_path)
 
     # ==================================
     # DEFAULT IMAGE
@@ -100,7 +128,7 @@ if uploaded_file:
 
     if "selected_image" not in st.session_state:
 
-        st.session_state.selected_image = "temp_image.png"
+        st.session_state.selected_image = image_path
 
     col1, col2 = st.columns([1, 2])
 
@@ -111,7 +139,7 @@ if uploaded_file:
     with col1:
 
         st.image(
-            uploaded_file,
+            image_path,
             caption="Uploaded Screenshot",
             width="stretch"
         )
@@ -165,12 +193,14 @@ if uploaded_file:
                 )
             )
 
+            selected_path = session_dir / "selected_region.png"
+
             cropped.save(
-                "selected_region.png"
+                selected_path
             )
 
-            st.session_state.selected_image = (
-                "selected_region.png"
+            st.session_state.selected_image = str(
+                selected_path
             )
 
             st.image(
@@ -179,7 +209,7 @@ if uploaded_file:
             )
 
         st.caption(
-            f"Current Image: {st.session_state.selected_image}"
+            f"Current Image: {Path(st.session_state.selected_image).name}"
         )
 
     # ==================================

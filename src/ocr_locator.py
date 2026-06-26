@@ -1,9 +1,12 @@
 import re
+from difflib import SequenceMatcher
 from PIL import Image
 import pytesseract
 
 
 OCR_SCALE = 3
+MIN_CONFIDENCE = 35
+FUZZY_MATCH_THRESHOLD = 0.82
 
 
 def normalize(text):
@@ -17,6 +20,24 @@ def normalize(text):
     )
 
     return text
+
+
+def confidence_value(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return -1.0
+
+
+def similarity(left, right):
+    return SequenceMatcher(None, left, right).ratio()
+
+
+def is_useful_partial(left, right):
+    if len(left) < 4 or len(right) < 4:
+        return False
+
+    return left in right or right in left
 
 
 def extract_ocr_data(image_path):
@@ -77,6 +98,38 @@ def make_box(words, scale):
     )
 
 
+def build_words(ocr_data, min_confidence=MIN_CONFIDENCE):
+    words = []
+
+    for i in range(len(ocr_data["text"])):
+
+        raw_text = ocr_data["text"][i].strip()
+        text = normalize(raw_text)
+        confidences = ocr_data.get("conf", [])
+        confidence = confidence_value(
+            confidences[i]
+            if i < len(confidences)
+            else min_confidence
+        )
+
+        if not text or confidence < min_confidence:
+            continue
+
+        words.append(
+            {
+                "text": text,
+                "raw_text": raw_text,
+                "confidence": confidence,
+                "left": ocr_data["left"][i],
+                "top": ocr_data["top"][i],
+                "width": ocr_data["width"][i],
+                "height": ocr_data["height"][i]
+            }
+        )
+
+    return words
+
+
 def find_text(ocr_data, target_text):
 
     print("Searching OCR...")
@@ -98,24 +151,7 @@ def find_text(ocr_data, target_text):
         return None
 
     scale = ocr_data.get("_scale", 1)
-
-    words = []
-
-    for i in range(len(ocr_data["text"])):
-
-        text = ocr_data["text"][i].strip()
-
-        if text:
-
-            words.append(
-                {
-                    "text": normalize(text),
-                    "left": ocr_data["left"][i],
-                    "top": ocr_data["top"][i],
-                    "width": ocr_data["width"][i],
-                    "height": ocr_data["height"][i]
-                }
-            )
+    words = build_words(ocr_data)
 
     print("OCR WORDS:")
     print([w["text"] for w in words])
@@ -160,30 +196,56 @@ def find_text(ocr_data, target_text):
                 return make_box([w], scale)
 
     # =====================================
-    # PASS 3 : Longest word
+    # PASS 3 : Fuzzy phrase
     # =====================================
 
-    if target_words:
+    if n > 1:
 
-        longest = max(
-            target_words,
-            key=len
-        )
+        target_phrase = "".join(target_words)
+
+        for i in range(len(words) - n + 1):
+
+            candidate = "".join(w["text"] for w in words[i:i+n])
+
+            if similarity(candidate, target_phrase) >= FUZZY_MATCH_THRESHOLD:
+
+                print("Found Fuzzy Phrase!")
+
+                return make_box(words[i:i+n], scale)
+
+    # =====================================
+    # PASS 4 : Fuzzy word
+    # =====================================
+
+    best_match = None
+    best_score = 0
+
+    for target in target_words:
+
+        if len(target) < 3:
+            continue
 
         for w in words:
 
             word = w["text"]
+
             if len(word) < 3:
                 continue
 
-            if longest in word or word in longest:
+            score = similarity(word, target)
 
-                print("Found Longest Word!")
+            if score > best_score:
+                best_score = score
+                best_match = w
 
-                return make_box([w], scale)
+    if best_match and best_score >= FUZZY_MATCH_THRESHOLD:
+
+        print("Found Fuzzy Word!")
+
+        return make_box([best_match], scale)
 
     # =====================================
-    # PASS 4 : Any matching word
+    # PASS 5 : Conservative partial match
     # =====================================
 
     for target in target_words:
@@ -191,10 +253,8 @@ def find_text(ocr_data, target_text):
         for w in words:
 
             word = w["text"]
-            if len(target) < 3 or len(word) < 3:
-                continue
 
-            if target in word or word in target:
+            if is_useful_partial(target, word):
 
                 print("Found Partial Match!")
 

@@ -1,4 +1,6 @@
 import re
+from pathlib import Path
+
 
 from PIL import Image
 from src.tutor import explain_image, model
@@ -224,9 +226,13 @@ Your explanation should:
                     print("BOX:", box)
                     print("Calling highlighter...")
 
+                    image_path = Path(self.image_path)
                     highlighted_image = highlight_box(
                         self.image_path,
-                        box
+                        box,
+                        image_path.with_name(
+                            f"{image_path.stem}_highlighted.png"
+                        )
                     )
 
         except Exception as e:

@@ -1,7 +1,9 @@
+from pathlib import Path
+
 from PIL import Image, ImageDraw
 
 
-def highlight_box(image_path, box):
+def highlight_box(image_path, box, output_path=None):
 
     """
     Draws a red rectangle around the OCR-detected text.
@@ -30,8 +32,11 @@ def highlight_box(image_path, box):
 
     image = Image.open(image_path).convert("RGB")
 
+    if output_path is None:
+        image_path = Path(image_path)
+        output_path = image_path.with_name(f"{image_path.stem}_highlighted.png")
+
     if box is None:
-        output_path = "highlighted_image.png"
         image.save(output_path)
         print("No OCR box found; returning unmodified image.")
         return output_path
@@ -73,8 +78,6 @@ def highlight_box(image_path, box):
             outline="red",
             width=4
         )
-
-    output_path = "highlighted_image.png"
 
     image.save(output_path)
 
