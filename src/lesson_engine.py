@@ -88,12 +88,35 @@ def format_lesson_answer(steps):
     return "\n\n".join(parts)
 
 class LessonEngine:
-    def __init__(self, image_path, ocr_data, mode="student"):
+    def __init__(self, image_path, ocr_data, mode="student", screenshot_type=None):
         self.image_path = image_path
         self.ocr_data = ocr_data
         self.mode = mode
+        self.screenshot_type = screenshot_type
 
     def build_lesson_prompt(self, question, history_text, explanation_text):
+        type_str = ""
+        type_guidelines = ""
+        if self.screenshot_type:
+            type_str = f"DETECTED SCREENSHOT TYPE: {self.screenshot_type}\n"
+            cleaned_type = self.screenshot_type.split("(")[0].strip().lower()
+            if cleaned_type == "code":
+                type_guidelines = "- Because this is code, explain why this variable/structure exists, how execution flows, and common bugs with this logic."
+            elif cleaned_type == "math":
+                type_guidelines = "- Because this is math, guide the student through the formula, substitution, calculation, and common arithmetic errors."
+            elif cleaned_type == "diagram":
+                type_guidelines = "- Because this is a diagram, guide the student through overview of components, flow directions, and key relationships."
+            elif cleaned_type == "dashboard":
+                type_guidelines = "- Because this is a dashboard, point to key metrics, explain trend lines, and interpret the data for them."
+            elif cleaned_type == "slides":
+                type_guidelines = "- Because this is a presentation slide, highlight the key takeaway points and how they relate to the diagrams/illustrations on the slide."
+            elif cleaned_type == "pdf":
+                type_guidelines = "- Because this is a document page, focus on core definitions, formulas, and structured paragraphs of academic explanation."
+            elif cleaned_type == "website":
+                type_guidelines = "- Because this is a web page, direct attention to documentation blocks, headers, or relevant reading selections."
+
+        guidelines_block = f"{type_guidelines}\n" if type_guidelines else ""
+
         return f"""
 You are ClickTutor, an AI visual tutor that teaches by guiding the student's attention step-by-step.
 Your goal is to explain concepts, not just point out facts or lines. Teach WHY things are there and what they mean, rather than simply listing syntax.
@@ -103,11 +126,13 @@ You are looking at:
 2. Previous conversation history (if any).
 3. A new student question.
 
+{type_str}
 ORIGINAL EXPLANATION:
 {explanation_text}
 
 CONVERSATION HISTORY:
 {history_text}
+
 
 CURRENT QUESTION:
 {question}
@@ -116,10 +141,11 @@ Your job is to break down the answer into a short, structured lesson (3 to 6 ste
 For each step, you must focus on one specific concept and anchor it to a visible element on the screen.
 
 CRITICAL INSTRUCTIONS FOR EXPLANATION:
-- Do NOT just say "Line 5 defines X". Instead explain: WHY does X exist? What problem does X solve?
+{guidelines_block}- Do NOT just say "Line 5 defines X". Instead explain: WHY does X exist? What problem does X solve?
 - Address consequence: What would happen or break if we removed or changed this anchored element?
 - Detail common mistakes or pitfalls students make regarding this concept.
 - Keep explanations clear, engaging, and friendly.
+
 
 FORMAT REQUIREMENT:
 For each step, pick one visible word, phrase, variable, button, function, line, metric, or label that best anchors that teaching step.

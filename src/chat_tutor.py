@@ -2,6 +2,7 @@ from pathlib import Path
 from src.tutor import explain_image
 from src.ocr_locator import extract_ocr_data
 from src.lesson_engine import LessonEngine
+from src.screenshot_classifier import classify_screenshot
 
 class TutorSession:
     def __init__(self, image_path, mode="student"):
@@ -23,12 +24,20 @@ class TutorSession:
             self.image_path
         )
 
+        # Classify screenshot
+        self.screenshot_type = classify_screenshot(
+            self.image_path,
+            self.ocr_data
+        )
+
         # Initialize Lesson Engine
         self.lesson_engine = LessonEngine(
             self.image_path,
             self.ocr_data,
-            self.mode
+            self.mode,
+            self.screenshot_type
         )
+
 
     def ask(self, question):
         # Keep only recent conversation
