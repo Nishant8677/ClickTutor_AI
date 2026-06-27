@@ -10,16 +10,17 @@ FUZZY_MATCH_THRESHOLD = 0.82
 
 
 def normalize(text):
-
     text = text.lower().strip()
-
     text = re.sub(
         r"[^a-z0-9]+",
         "",
         text
     )
-
     return text
+
+
+def clean_context(text):
+    return text.lower().strip()
 
 
 def confidence_value(value):
@@ -36,7 +37,6 @@ def similarity(left, right):
 def is_useful_partial(left, right):
     if len(left) < 4 or len(right) < 4:
         return False
-
     return left in right or right in left
 
 
@@ -77,7 +77,7 @@ def scale_box_to_image(box, scale):
         "left": left,
         "top": top,
         "width": max(1, right - left),
-        "height": max(1, bottom - top)
+        "height": bottom - top
     }
 
 
@@ -100,17 +100,17 @@ def make_box(words, scale):
 
 def build_words(ocr_data, min_confidence=MIN_CONFIDENCE):
     words = []
+    n = len(ocr_data.get("text", []))
 
-    for i in range(len(ocr_data["text"])):
+    block_nums = ocr_data.get("block_num", [0] * n)
+    par_nums = ocr_data.get("par_num", [0] * n)
+    line_nums = ocr_data.get("line_num", [0] * n)
+    confidences = ocr_data.get("conf", [min_confidence] * n)
 
+    for i in range(n):
         raw_text = ocr_data["text"][i].strip()
         text = normalize(raw_text)
-        confidences = ocr_data.get("conf", [])
-        confidence = confidence_value(
-            confidences[i]
-            if i < len(confidences)
-            else min_confidence
-        )
+        confidence = confidence_value(confidences[i])
 
         if not text or confidence < min_confidence:
             continue
@@ -123,28 +123,39 @@ def build_words(ocr_data, min_confidence=MIN_CONFIDENCE):
                 "left": ocr_data["left"][i],
                 "top": ocr_data["top"][i],
                 "width": ocr_data["width"][i],
-                "height": ocr_data["height"][i]
+                "height": ocr_data["height"][i],
+                "line_id": (block_nums[i], par_nums[i], line_nums[i])
             }
         )
 
     return words
 
 
-def find_text(ocr_data, target_text):
+def get_line_texts(words):
+    lines = {}
+    for w in words:
+        lid = w["line_id"]
+        if lid not in lines:
+            lines[lid] = []
+        lines[lid].append(w)
+    
+    line_texts = {}
+    for lid, line_words in lines.items():
+        sorted_words = sorted(line_words, key=lambda x: x["left"])
+        line_texts[lid] = " ".join(w["raw_text"] for w in sorted_words)
+    return line_texts
 
-    print("Searching OCR...")
+
+def find_text(ocr_data, target_text, context_text=None):
+    print(f"Searching OCR for target: '{target_text}' (Context: '{context_text}')")
 
     if not target_text:
         return None
 
     target_words = [
-
         normalize(word)
-
         for word in re.split(r"[\s\-]+", target_text)
-
         if normalize(word)
-
     ]
 
     if not target_words or target_words == ["none"]:
@@ -152,114 +163,114 @@ def find_text(ocr_data, target_text):
 
     scale = ocr_data.get("_scale", 1)
     words = build_words(ocr_data)
+    line_texts = get_line_texts(words)
 
-    print("OCR WORDS:")
-    print([w["text"] for w in words])
+    # Helper to pick the best candidate based on context similarity
+    def select_best(candidates):
+        if not candidates:
+            return None
+        if not context_text:
+            return make_box(candidates[0], scale)
+
+        best_cand = None
+        best_score = -1
+        target_context_clean = clean_context(context_text)
+
+        for cand in candidates:
+            lid = cand[0]["line_id"]
+            line_text = line_texts.get(lid, "")
+            score = similarity(clean_context(line_text), target_context_clean)
+            if score > best_score:
+                best_score = score
+                best_cand = cand
+        
+        print(f"Selected candidate based on context score: {best_score}")
+        return make_box(best_cand, scale)
 
     # =====================================
     # PASS 1 : Exact phrase
     # =====================================
-
     n = len(target_words)
-
+    candidates = []
     if n > 1:
-
         for i in range(len(words) - n + 1):
-
             match = True
-
             for j in range(n):
-
                 if words[i + j]["text"] != target_words[j]:
-
                     match = False
                     break
-
             if match:
-
-                print("Found Exact Phrase!")
-
-                return make_box(words[i:i+n], scale)
+                candidates.append(words[i:i+n])
+        
+        if candidates:
+            print("Found Exact Phrase Candidates!")
+            return select_best(candidates)
 
     # =====================================
     # PASS 2 : Exact word
     # =====================================
-
+    candidates = []
     for target in target_words:
-
         for w in words:
-
             if w["text"] == target:
-
-                print("Found Exact Word!")
-
-                return make_box([w], scale)
+                candidates.append([w])
+    
+    if candidates:
+        print("Found Exact Word Candidates!")
+        return select_best(candidates)
 
     # =====================================
     # PASS 3 : Fuzzy phrase
     # =====================================
-
+    candidates = []
     if n > 1:
-
         target_phrase = "".join(target_words)
-
         for i in range(len(words) - n + 1):
-
             candidate = "".join(w["text"] for w in words[i:i+n])
-
             if similarity(candidate, target_phrase) >= FUZZY_MATCH_THRESHOLD:
-
-                print("Found Fuzzy Phrase!")
-
-                return make_box(words[i:i+n], scale)
+                candidates.append(words[i:i+n])
+        
+        if candidates:
+            print("Found Fuzzy Phrase Candidates!")
+            return select_best(candidates)
 
     # =====================================
     # PASS 4 : Fuzzy word
     # =====================================
-
-    best_match = None
-    best_score = 0
-
+    best_matches = []
     for target in target_words:
-
         if len(target) < 3:
             continue
-
         for w in words:
-
             word = w["text"]
-
             if len(word) < 3:
                 continue
-
             score = similarity(word, target)
-
-            if score > best_score:
-                best_score = score
-                best_match = w
-
-    if best_match and best_score >= FUZZY_MATCH_THRESHOLD:
-
-        print("Found Fuzzy Word!")
-
-        return make_box([best_match], scale)
+            if score >= FUZZY_MATCH_THRESHOLD:
+                best_matches.append((score, [w]))
+    
+    if best_matches:
+        # Sort by similarity score descending
+        best_matches.sort(key=lambda x: x[0], reverse=True)
+        # Select candidates that match the highest similarity score
+        top_score = best_matches[0][0]
+        candidates = [item[1] for item in best_matches if item[0] == top_score]
+        print("Found Fuzzy Word Candidates!")
+        return select_best(candidates)
 
     # =====================================
     # PASS 5 : Conservative partial match
     # =====================================
-
+    candidates = []
     for target in target_words:
-
         for w in words:
-
             word = w["text"]
-
             if is_useful_partial(target, word):
-
-                print("Found Partial Match!")
-
-                return make_box([w], scale)
+                candidates.append([w])
+    
+    if candidates:
+        print("Found Partial Match Candidates!")
+        return select_best(candidates)
 
     print("Not Found")
-
     return None
