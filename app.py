@@ -61,6 +61,11 @@ with st.sidebar:
         f"Current Mode: {mode.upper()}"
     )
 
+    if "session" in st.session_state and hasattr(st.session_state.session, "screenshot_type"):
+        st.info(
+            f"📸 Content: **{st.session_state.session.screenshot_type.upper()}**"
+        )
+
     uploaded_file = st.file_uploader(
         "Upload Screenshot",
         type=["png", "jpg", "jpeg"]
@@ -282,10 +287,36 @@ if uploaded_file:
                     f"Step {index + 1} of {len(steps)}"
                 )
 
-                if step.get("visible_text"):
+                st.markdown(f"### {step.get('title', f'Step {index + 1}')}")
+
+                anchor = step.get("anchor") or step.get("visible_text")
+                if anchor and anchor.upper() != "NONE":
                     st.markdown(
-                        f"**Focus:** `{step['visible_text']}`"
+                        f"🎯 **Anchor Focus:** `{anchor}`"
                     )
+
+                attention = step.get("attention", "none")
+                emphasis = step.get("emphasis", "low")
+
+                attention_emoji = {
+                    "circle": "🔴 Circle",
+                    "rectangle": "🟥 Rectangle",
+                    "arrow": "➡️ Arrow",
+                    "underline": "➖ Underline",
+                    "none": "⚪ None"
+                }.get(attention, f"👁️ {attention.capitalize()}")
+
+                emphasis_emoji = {
+                    "high": "🔴 High Priority",
+                    "medium": "🟡 Medium Priority",
+                    "low": "🟢 Low Priority"
+                }.get(emphasis, f"⚡ {emphasis.capitalize()}")
+
+                st.markdown(
+                    f"👁️ **Attention Shape:** `{attention_emoji}` | ⚡ **Emphasis:** `{emphasis_emoji}`"
+                )
+
+                st.divider()
 
                 st.markdown(
                     step.get("explanation", "")
