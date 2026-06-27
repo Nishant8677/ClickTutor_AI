@@ -12,10 +12,17 @@ STEP_PATTERN = re.compile(
 
 def get_visible_text(response):
     match = re.search(
-        r"VISIBLE TEXT:\s*(.+)",
+        r"ANCHOR:\s*(.+)",
         response,
         re.IGNORECASE
     )
+    if not match:
+        # Fallback to old format if any
+        match = re.search(
+            r"VISIBLE TEXT:\s*(.+)",
+            response,
+            re.IGNORECASE
+        )
     if match:
         return match.group(1).strip()
     return None
@@ -47,16 +54,14 @@ def parse_lesson_steps(response):
         step_number = int(match.group(1))
         block = match.group(2).strip()
 
-        visible_text = extract_section(
-            block,
-            "VISIBLE TEXT",
-            ["EXPLANATION"]
-        )
-
-        explanation = extract_section(
-            block,
-            "EXPLANATION"
-        )
+        title = extract_section(block, "TITLE", ["ANCHOR", "ATTENTION", "EMPHASIS", "EXPLANATION"])
+        anchor = extract_section(block, "ANCHOR", ["ATTENTION", "EMPHASIS", "EXPLANATION"])
+        if not anchor:
+            anchor = extract_section(block, "VISIBLE TEXT", ["ATTENTION", "EMPHASIS", "EXPLANATION"])
+        
+        attention = extract_section(block, "ATTENTION", ["EMPHASIS", "EXPLANATION"])
+        emphasis = extract_section(block, "EMPHASIS", ["EXPLANATION"])
+        explanation = extract_section(block, "EXPLANATION")
 
         if not explanation:
             continue
@@ -64,7 +69,10 @@ def parse_lesson_steps(response):
         steps.append(
             {
                 "step": step_number,
-                "visible_text": visible_text or "NONE",
+                "title": title or f"Step {step_number}",
+                "anchor": anchor or "NONE",
+                "attention": (attention or "none").lower(),
+                "emphasis": (emphasis or "low").lower(),
                 "explanation": explanation,
                 "highlighted_image": None
             }
@@ -80,9 +88,9 @@ def format_lesson_answer(steps):
 
     for step in steps:
         parts.append(
-            f"STEP {step['step']}\n\n"
-            f"VISIBLE TEXT:\n{step['visible_text']}\n\n"
-            f"EXPLANATION:\n{step['explanation']}"
+            f"### STEP {step['step']}: {step['title']}\n"
+            f"🎯 **Anchor Focus:** `{step['anchor']}` | 👁️ **Attention:** `{step['attention']}` | ⚡ **Emphasis:** `{step['emphasis']}`\n\n"
+            f"{step['explanation']}"
         )
 
     return "\n\n".join(parts)
@@ -146,21 +154,36 @@ CRITICAL INSTRUCTIONS FOR EXPLANATION:
 - Detail common mistakes or pitfalls students make regarding this concept.
 - Keep explanations clear, engaging, and friendly.
 
-
 FORMAT REQUIREMENT:
-For each step, pick one visible word, phrase, variable, button, function, line, metric, or label that best anchors that teaching step.
-Copy the visible text EXACTLY as it appears in the screenshot. It must be short enough for OCR to locate. If no specific element is visible, write VISIBLE TEXT: NONE.
+For each step, return exactly these fields in order:
+- TITLE: A short, conceptual title for this step (e.g. "Initializing the loop variables" or "Understanding the right-angle triangle").
+- ANCHOR: Pick one visible word, phrase, variable, button, function, line, metric, or label that best anchors that teaching step. Copy the visible text EXACTLY as it appears in the screenshot. It must be short enough for OCR to locate. If no specific element is visible, write NONE.
+- ATTENTION: Specify the visual layout indicator (choose exactly one of: circle, rectangle, arrow, underline, none).
+- EMPHASIS: Specify the importance level (choose exactly one of: high, medium, low).
+- EXPLANATION: Your conceptual explanation for this step.
 
 Return the steps in this exact format with nothing before STEP 1:
 
 STEP 1
-VISIBLE TEXT:
+TITLE:
+...
+ANCHOR:
+...
+ATTENTION:
+...
+EMPHASIS:
 ...
 EXPLANATION:
 ...
 
 STEP 2
-VISIBLE TEXT:
+TITLE:
+...
+ANCHOR:
+...
+ATTENTION:
+...
+EMPHASIS:
 ...
 EXPLANATION:
 ...
@@ -171,13 +194,13 @@ EXPLANATION:
         highlighted_steps = []
 
         for index, step in enumerate(steps, start=1):
-            visible_text = step.get("visible_text", "")
+            anchor = step.get("anchor", "")
             highlighted_image = None
 
-            if visible_text and visible_text.strip().upper() != "NONE":
+            if anchor and anchor.strip().upper() != "NONE":
                 box = find_text(
                     self.ocr_data,
-                    visible_text
+                    anchor
                 )
 
                 if box:
@@ -225,14 +248,14 @@ EXPLANATION:
                 highlighted_image = lesson_steps[0].get("highlighted_image")
                 answer = format_lesson_answer(lesson_steps)
             else:
-                visible_text = get_visible_text(answer)
-                print("VISIBLE TEXT:")
-                print(visible_text)
+                anchor = get_visible_text(answer)
+                print("FALLBACK ANCHOR:")
+                print(anchor)
 
-                if visible_text and visible_text.strip().upper() != "NONE":
+                if anchor and anchor.strip().upper() != "NONE":
                     box = find_text(
                         self.ocr_data,
-                        visible_text
+                        anchor
                     )
 
                     if box:
