@@ -5,7 +5,7 @@ import pytesseract
 
 
 OCR_SCALE = 3
-MIN_CONFIDENCE = 35
+MIN_CONFIDENCE = 0
 FUZZY_MATCH_THRESHOLD = 0.82
 
 
