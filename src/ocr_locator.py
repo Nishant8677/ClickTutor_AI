@@ -188,6 +188,45 @@ def find_text(ocr_data, target_text, context_text=None):
         return make_box(best_cand, scale)
 
     # =====================================
+    # PASS 0 : Line-Based Substring Phrase Matcher (handles symbols/brackets)
+    # =====================================
+    norm_target = normalize(target_text)
+    if norm_target:
+        line_groups = {}
+        for w in words:
+            lid = w["line_id"]
+            if lid not in line_groups:
+                line_groups[lid] = []
+            line_groups[lid].append(w)
+
+        line_candidates = []
+        for lid, line_words in line_groups.items():
+            sorted_words = sorted(line_words, key=lambda x: x["left"])
+            line_text_concat = "".join(w["text"] for w in sorted_words)
+
+            if norm_target in line_text_concat:
+                match_start = line_text_concat.find(norm_target)
+                match_end = match_start + len(norm_target)
+
+                char_idx = 0
+                matching_words = []
+                for w in sorted_words:
+                    w_len = len(w["text"])
+                    w_start = char_idx
+                    w_end = char_idx + w_len
+                    char_idx = w_end
+
+                    if not (w_end <= match_start or w_start >= match_end):
+                        matching_words.append(w)
+
+                if matching_words:
+                    line_candidates.append(matching_words)
+
+        if line_candidates:
+            print("Found Line-Based Phrase Matcher Candidates!")
+            return select_best(line_candidates)
+
+    # =====================================
     # PASS 1 : Exact phrase
     # =====================================
     n = len(target_words)
