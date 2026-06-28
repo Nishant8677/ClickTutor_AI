@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 @dataclass
 class AttentionShape:
@@ -32,3 +31,8 @@ class LabelShape(AttentionShape):
     text: str
     bg_color: str = "yellow"
     text_color: str = "black"
+
+@dataclass
+class DebugBoxShape(AttentionShape):
+    text: str
+    confidence: float

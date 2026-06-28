@@ -1,6 +1,6 @@
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont
 from PyQt6.QtCore import Qt, QRect, QPoint
-from src.attention.shapes import AttentionShape, RectangleShape, CircleShape, UnderlineShape, LabelShape
+from src.attention.shapes import AttentionShape, RectangleShape, CircleShape, UnderlineShape, LabelShape, DebugBoxShape
 
 class Renderer:
     def __init__(self, painter: QPainter):
@@ -16,6 +16,8 @@ class Renderer:
             self._draw_underline(shape)
         elif isinstance(shape, LabelShape):
             self._draw_label(shape)
+        elif isinstance(shape, DebugBoxShape):
+            self._draw_debug_box(shape)
 
     def _draw_rectangle(self, shape: RectangleShape):
         pen = QPen(QColor(shape.outline_color), shape.outline_width)
@@ -57,3 +59,18 @@ class Renderer:
         rect = QRect(shape.x, shape.y, shape.width, shape.height)
         self.painter.drawRect(rect)
         self.painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, shape.text)
+
+    def _draw_debug_box(self, shape: DebugBoxShape):
+        # Draw a semi-transparent purple box around the word
+        color = QColor(128, 0, 128, 100)
+        self.painter.setBrush(color)
+        self.painter.setPen(QPen(QColor(128, 0, 128), 1))
+        
+        rect = QRect(shape.x, shape.y, shape.width, shape.height)
+        self.painter.drawRect(rect)
+        
+        # Draw the confidence and text very small above the box
+        self.painter.setPen(QPen(QColor(255, 255, 255)))
+        self.painter.setFont(QFont("Arial", 8))
+        self.painter.drawText(shape.x, shape.y - 2, f"{shape.text} ({shape.confidence})")
+

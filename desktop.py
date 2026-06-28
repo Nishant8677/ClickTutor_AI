@@ -1,14 +1,14 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPainter
-from src.attention.shapes import RectangleShape, CircleShape, UnderlineShape, LabelShape
+from src.attention.shapes import RectangleShape, CircleShape, UnderlineShape, LabelShape, DebugBoxShape
 from src.attention.renderer import Renderer
+from src.ocr_locator import extract_ocr_data, build_words
 
 class OverlayPoC(QWidget):
     def __init__(self):
         super().__init__()
-        # Make the window frameless, always on top, and click-through
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
@@ -17,28 +17,87 @@ class OverlayPoC(QWidget):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
-        # Make it fullscreen
         screen_geometry = QApplication.primaryScreen().geometry()
         self.setGeometry(screen_geometry)
         
-        # Define shapes to render
-        self.shapes = [
+        # Default mode shapes
+        self.normal_shapes = [
             RectangleShape(x=200, y=200, width=150, height=50),
             CircleShape(x=475, y=200, width=50, height=50),
             UnderlineShape(x=800, y=260, width=150, height=5),
             LabelShape(x=200, y=400, width=200, height=40, text="ClickTutor Label")
         ]
+        
+        self.debug_shapes = []
+        self.is_debug_mode = False
+
+    def load_debug_data(self):
+        print("Loading OCR data for debug mode...")
+        # For the PoC, we run OCR on a static image to show the debug boxes
+        ocr_data = extract_ocr_data("DSA_ques_1.png")
+        words = build_words(ocr_data, min_confidence=0)
+        scale = ocr_data.get("_scale", 1)
+        
+        for w in words:
+            left = round(w["left"] / scale)
+            top = round(w["top"] / scale)
+            width = max(1, round(w["width"] / scale))
+            height = round(w["height"] / scale)
+            
+            self.debug_shapes.append(
+                DebugBoxShape(
+                    x=left, y=top, width=width, height=height,
+                    text=w["raw_text"],
+                    confidence=w["confidence"]
+                )
+            )
+        print(f"Loaded {len(self.debug_shapes)} OCR words.")
+
+    def toggle_debug(self):
+        if not self.debug_shapes:
+            self.load_debug_data()
+            
+        self.is_debug_mode = not self.is_debug_mode
+        self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
         renderer = Renderer(painter)
         
-        for shape in self.shapes:
+        shapes_to_draw = self.debug_shapes if self.is_debug_mode else self.normal_shapes
+        
+        for shape in shapes_to_draw:
             renderer.draw(shape)
+
+class ControlPanel(QWidget):
+    def __init__(self, overlay):
+        super().__init__()
+        self.overlay = overlay
+        self.setWindowTitle("ClickTutor Controls")
+        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
+        self.resize(250, 100)
+        
+        layout = QVBoxLayout()
+        self.btn_debug = QPushButton("Toggle OCR Debug Mode (F8)")
+        self.btn_debug.clicked.connect(self.overlay.toggle_debug)
+        layout.addWidget(self.btn_debug)
+        
+        self.setLayout(layout)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_F8:
+            self.overlay.toggle_debug()
+        else:
+            super().keyPressEvent(event)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    
     overlay = OverlayPoC()
     overlay.show()
-    print("Overlay is running. Close terminal or press Ctrl+C to stop.")
+    
+    panel = ControlPanel(overlay)
+    panel.show()
+    
+    print("Overlay is running. Use the Control Panel window to toggle Debug Mode.")
     sys.exit(app.exec())
