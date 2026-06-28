@@ -62,6 +62,27 @@ class DesktopUI(QWidget):
         else:
             super().keyPressEvent(event)
 
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+
+class LessonWorker(QThread):
+    finished = pyqtSignal(list, str)
+    error = pyqtSignal(str)
+
+    def __init__(self, image_path, ocr_data, question):
+        super().__init__()
+        self.image_path = image_path
+        self.ocr_data = ocr_data
+        self.question = question
+
+    def run(self):
+        try:
+            from src.lesson_engine import LessonEngine
+            engine = LessonEngine(self.image_path, self.ocr_data)
+            answer, _, steps = engine.generate_lesson(self.question, [], "")
+            self.finished.emit(steps, answer)
+        except Exception as e:
+            self.error.emit(str(e))
+
 class DesktopController:
     def __init__(self, default_image="sample2.png"):
         self.image_path = default_image
@@ -73,6 +94,7 @@ class DesktopController:
         self.lesson_steps = []
         self.current_step_index = 0
         self.is_debug_mode = False
+        self.worker = None
 
     def start(self):
         self.overlay.show()
@@ -114,29 +136,30 @@ class DesktopController:
                 self.show_current_step()
 
     def generate_lesson(self, question):
-        # We mock the response to avoid blocking UI and API costs for the overlay test
-        mock_response = """
-STEP 1
-TITLE: Identify the input
-ANCHOR: matrix
-CONTEXT: You are given an n x n 2D matrix
-ATTENTION: rectangle
-EMPHASIS: high
-EXPLANATION: This is the 2D array representing the image.
+        self.ui.btn_ask.setEnabled(False)
+        self.ui.lbl_status.setText("Asking Gemini for a lesson... please wait!")
+        
+        self.worker = LessonWorker(self.image_path, self.ocr_data, question)
+        self.worker.finished.connect(self._on_lesson_finished)
+        self.worker.error.connect(self._on_lesson_error)
+        self.worker.start()
 
-STEP 2
-TITLE: Output requirement
-ANCHOR: rotate the image
-CONTEXT: rotate the image by 90 degrees
-ATTENTION: underline
-EMPHASIS: medium
-EXPLANATION: The goal is to rotate it in place without using another matrix.
-"""
-        self.lesson_steps = parse_lesson_steps(mock_response)
+    def _on_lesson_finished(self, steps, answer):
+        self.ui.btn_ask.setEnabled(True)
+        if not steps:
+            self.ui.lbl_status.setText("Gemini didn't return any steps.")
+            return
+            
+        self.lesson_steps = steps
         self.current_step_index = 0
         self.is_debug_mode = False
         self.overlay.set_background(self.image_path, show=True)
         self.show_current_step()
+        self.ui.lbl_status.setText("Lesson ready! Use Next/Prev to navigate.")
+
+    def _on_lesson_error(self, error_msg):
+        self.ui.btn_ask.setEnabled(True)
+        self.ui.lbl_status.setText(f"Error: {error_msg}")
 
     def show_current_step(self):
         if not self.lesson_steps:
