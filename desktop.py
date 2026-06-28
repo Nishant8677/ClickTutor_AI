@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPainter
+from PyQt6.QtGui import QPainter, QPixmap
 from src.attention.shapes import RectangleShape, CircleShape, UnderlineShape, LabelShape, DebugBoxShape
 from src.attention.renderer import Renderer
 from src.ocr_locator import extract_ocr_data, build_words
@@ -30,6 +30,8 @@ class OverlayPoC(QWidget):
         
         self.debug_shapes = []
         self.is_debug_mode = False
+        self.test_image_pixmap = None
+        self.show_test_image = False
 
     def load_debug_data(self):
         print("Loading OCR data for debug mode...")
@@ -40,10 +42,12 @@ class OverlayPoC(QWidget):
             
         print(f"Running OCR on: {image_path}")
         try:
+            self.test_image_pixmap = QPixmap(image_path)
             ocr_data = extract_ocr_data(image_path)
             words = build_words(ocr_data, min_confidence=0)
             scale = ocr_data.get("_scale", 1)
             
+            self.debug_shapes.clear()
             for w in words:
                 left = round(w["left"] / scale)
                 top = round(w["top"] / scale)
@@ -61,12 +65,12 @@ class OverlayPoC(QWidget):
         except Exception as e:
             print(f"Error loading OCR data from {image_path}: {e}")
 
-
     def toggle_debug(self):
         if not self.debug_shapes:
             self.load_debug_data()
             
         self.is_debug_mode = not self.is_debug_mode
+        self.show_test_image = self.is_debug_mode
         self.update()
 
     def test_locator(self):
@@ -76,8 +80,10 @@ class OverlayPoC(QWidget):
             image_path = sys.argv[1]
             
         try:
+            if not self.test_image_pixmap:
+                self.test_image_pixmap = QPixmap(image_path)
+                
             ocr_data = extract_ocr_data(image_path)
-            # Find a word that exists in the image. "matrix" is in the sample.
             from src.ocr_locator import find_text
             
             target = "matrix"
@@ -87,6 +93,7 @@ class OverlayPoC(QWidget):
             if box:
                 print(f"Found '{target}' at {box}")
                 self.is_debug_mode = False
+                self.show_test_image = True
                 
                 # Create attention shapes over the located box
                 self.normal_shapes = [
@@ -114,8 +121,97 @@ class OverlayPoC(QWidget):
         except Exception as e:
             print(f"Error testing locator: {e}")
 
+    def test_lesson(self):
+        print("Testing Lesson Pipeline...")
+        image_path = "sample2.png"
+        if len(sys.argv) > 1:
+            image_path = sys.argv[1]
+            
+        if not self.test_image_pixmap:
+            self.test_image_pixmap = QPixmap(image_path)
+            
+        self.ocr_data = extract_ocr_data(image_path)
+        
+        mock_response = """
+STEP 1
+TITLE: Identify the input
+ANCHOR: matrix
+CONTEXT: You are given an n x n 2D matrix
+ATTENTION: rectangle
+EMPHASIS: high
+EXPLANATION: This is the 2D array representing the image.
+
+STEP 2
+TITLE: Output requirement
+ANCHOR: rotate the image
+CONTEXT: rotate the image by 90 degrees
+ATTENTION: underline
+EMPHASIS: medium
+EXPLANATION: The goal is to rotate it in place without using another matrix.
+"""
+        from src.lesson_engine import parse_lesson_steps
+        self.lesson_steps = parse_lesson_steps(mock_response)
+        self.current_step_index = 0
+        self.show_current_step()
+
+    def show_current_step(self):
+        if not hasattr(self, 'lesson_steps') or not self.lesson_steps:
+            return
+            
+        step = self.lesson_steps[self.current_step_index]
+        print(f"Showing Step {step['step']}: {step['title']}")
+        
+        from src.ocr_locator import find_text
+        box = find_text(self.ocr_data, step["anchor"], step["context"])
+        
+        self.is_debug_mode = False
+        self.show_test_image = True
+        
+        if box:
+            attention_type = step.get("attention", "rectangle")
+            
+            shape = None
+            if attention_type == "circle":
+                shape = CircleShape(x=box["left"], y=box["top"], width=box["width"], height=box["height"])
+            elif attention_type == "underline":
+                shape = UnderlineShape(x=box["left"], y=box["top"], width=box["width"], height=box["height"])
+            else:
+                shape = RectangleShape(x=box["left"], y=box["top"], width=box["width"], height=box["height"])
+                
+            self.normal_shapes = [
+                shape,
+                LabelShape(
+                    x=box["left"], y=max(0, box["top"] - 40),
+                    width=250, height=30,
+                    text=f"Step {step['step']}: {step['title']}",
+                    bg_color="white", text_color="black"
+                )
+            ]
+        else:
+            print(f"Could not find anchor '{step['anchor']}' for Step {step['step']}")
+            self.normal_shapes = []
+            
+        self.update()
+        
+    def next_step(self):
+        if hasattr(self, 'lesson_steps') and self.lesson_steps:
+            if self.current_step_index < len(self.lesson_steps) - 1:
+                self.current_step_index += 1
+                self.show_current_step()
+
+    def prev_step(self):
+        if hasattr(self, 'lesson_steps') and self.lesson_steps:
+            if self.current_step_index > 0:
+                self.current_step_index -= 1
+                self.show_current_step()
+
     def paintEvent(self, event):
         painter = QPainter(self)
+        
+        # Draw the test image as a background if enabled so user can verify alignment
+        if self.show_test_image and self.test_image_pixmap:
+            painter.drawPixmap(0, 0, self.test_image_pixmap)
+            
         renderer = Renderer(painter)
         
         shapes_to_draw = self.debug_shapes if self.is_debug_mode else self.normal_shapes
@@ -129,7 +225,7 @@ class ControlPanel(QWidget):
         self.overlay = overlay
         self.setWindowTitle("ClickTutor Controls")
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        self.resize(250, 150)
+        self.resize(300, 250)
         
         layout = QVBoxLayout()
         self.btn_debug = QPushButton("Toggle OCR Debug Mode (F8)")
@@ -139,6 +235,22 @@ class ControlPanel(QWidget):
         self.btn_locate = QPushButton("Test Locator ('matrix')")
         self.btn_locate.clicked.connect(self.overlay.test_locator)
         layout.addWidget(self.btn_locate)
+        
+        self.btn_lesson = QPushButton("Test Lesson Pipeline (Milestone 5)")
+        self.btn_lesson.clicked.connect(self.overlay.test_lesson)
+        layout.addWidget(self.btn_lesson)
+        
+        self.btn_prev = QPushButton("< Previous Step")
+        self.btn_prev.clicked.connect(self.overlay.prev_step)
+        layout.addWidget(self.btn_prev)
+        
+        self.btn_next = QPushButton("Next Step >")
+        self.btn_next.clicked.connect(self.overlay.next_step)
+        layout.addWidget(self.btn_next)
+        
+        self.btn_quit = QPushButton("Exit")
+        self.btn_quit.clicked.connect(QApplication.quit)
+        layout.addWidget(self.btn_quit)
         
         self.setLayout(layout)
 
