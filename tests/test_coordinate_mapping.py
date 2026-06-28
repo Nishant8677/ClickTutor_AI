@@ -41,29 +41,17 @@ class CoordinateCalibrationOverlay(QWidget):
             RectangleShape(x=w-box_size, y=h-box_size, width=box_size, height=box_size, padding=padding, outline_color="magenta") # Bottom-Right
         ]
         
-        # Setup timer to capture screen after UI renders
-        QTimer.singleShot(2000, self.capture_and_verify)
+        # The window will stay open until closed by the user.
+        print("Coordinate Mapping Validation is running!")
+        print("Please visually verify that the 5 colored boxes are perfectly aligned in the 4 corners and the center of your screen.")
+        print("You can manually take a screenshot using Windows+Shift+S if needed.")
+        print("Close the terminal or press Ctrl+C to stop.")
 
     def paintEvent(self, event):
         painter = QPainter(self)
         renderer = Renderer(painter)
         for shape in self.shapes:
             renderer.draw(shape)
-            
-    def capture_and_verify(self):
-        print("Capturing screen for verification...")
-        screen = QApplication.primaryScreen()
-        pixmap = screen.grabWindow(0)
-        img = pixmap.toImage()
-        
-        w = img.width()
-        h = img.height()
-        
-        print(f"Screen size reported by Qt: {w}x{h}")
-        pixmap.save("coordinate_calibration_test.png")
-        print("Saved screen capture to 'coordinate_calibration_test.png'.")
-        print("Please open this image and verify the 5 colored boxes are perfectly aligned in the corners and center!")
-        QApplication.quit()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
