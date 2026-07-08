@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QApplication, QWidget
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPainter, QPixmap
 from src.attention.renderer import Renderer
+from src.attention.animation import AnimationEngine
 
 class TransparentOverlay(QWidget):
     def __init__(self):
@@ -17,13 +18,15 @@ class TransparentOverlay(QWidget):
         screen_geometry = QApplication.primaryScreen().geometry()
         self.setGeometry(screen_geometry)
         
-        self.shapes = []
         self.bg_pixmap = None
         self.show_bg = False
+        
+        # Overlay owns the animation engine and provides its own update method as callback
+        self.animation_engine = AnimationEngine(self.update)
 
     def set_shapes(self, shapes):
-        self.shapes = shapes
-        self.update()
+        # Kick off animation sequence for the new shapes
+        self.animation_engine.start(shapes)
 
     def set_background(self, image_path, show=True):
         if image_path:
@@ -32,7 +35,8 @@ class TransparentOverlay(QWidget):
         self.update()
 
     def clear(self):
-        self.shapes = []
+        self.animation_engine.stop()
+        self.animation_engine.shapes = []
         self.bg_pixmap = None
         self.show_bg = False
         self.update()
@@ -44,5 +48,5 @@ class TransparentOverlay(QWidget):
             painter.drawPixmap(0, 0, self.bg_pixmap)
             
         renderer = Renderer(painter)
-        for shape in self.shapes:
+        for shape in self.animation_engine.shapes:
             renderer.draw(shape)
