@@ -44,6 +44,11 @@ class DesktopUI(QWidget):
         self.btn_demo = QPushButton("▶ Watch Demo")
         self.btn_demo.clicked.connect(self.on_watch_demo)
         demo_layout.addWidget(self.btn_demo)
+        
+        self.chk_fake_demo = QCheckBox("Presentation Mode (Video Record)")
+        self.chk_fake_demo.setToolTip("If checked, 'Capture & Ask' will play the selected offline demo instead of calling AI.")
+        demo_layout.addWidget(self.chk_fake_demo)
+        
         layout.addLayout(demo_layout)
         
         self.lbl_status = QLabel("Ready. Ask a question about the screen:")
@@ -93,8 +98,16 @@ class DesktopUI(QWidget):
     def on_capture_ask(self):
         question = self.text_question.toPlainText().strip()
         if question:
-            self.lbl_status.setText("Capturing screen...")
-            self.controller.capture_and_generate(question)
+            if self.chk_fake_demo.isChecked():
+                # Fake AI mode for video recording! Play the selected demo instead.
+                demo_id = self.demo_dropdown.currentData()
+                if demo_id:
+                    self.lbl_status.setText("Processing with AI...")
+                    self.controller.start_demo(demo_id)
+            else:
+                # Real AI mode
+                self.lbl_status.setText("Capturing screen...")
+                self.controller.capture_and_generate(question)
             
     def keyPressEvent(self, event):
         # Interrupt demo on any key press in UI
