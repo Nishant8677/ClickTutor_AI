@@ -206,12 +206,20 @@ class DesktopController:
             else:
                 shape = RectangleShape(x=box["left"], y=box["top"], width=box["width"], height=box["height"])
                 
+            from PyQt6.QtGui import QFontMetrics, QFont
+            label_text = f"Step {step['step']}: {step['title']}"
+            font = QFont("Arial", 16, QFont.Weight.Bold)
+            fm = QFontMetrics(font)
+            # Add some padding around the text
+            text_width = fm.horizontalAdvance(label_text) + 30 
+            text_height = fm.height() + 10
+            
             shapes = [
                 shape,
                 LabelShape(
-                    x=box["left"], y=max(0, box["top"] - 40),
-                    width=250, height=30,
-                    text=f"Step {step['step']}: {step['title']}",
+                    x=box["left"], y=max(0, box["top"] - text_height - 10),
+                    width=text_width, height=text_height,
+                    text=label_text,
                     bg_color="white", text_color="black"
                 )
             ]
