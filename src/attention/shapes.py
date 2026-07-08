@@ -43,7 +43,7 @@ class UnderlineShape(AttentionShape):
 
 @dataclass
 class LabelShape(AttentionShape):
-    text: str
+    text: str = ""
     bg_color: str = "yellow"
     text_color: str = "black"
     
@@ -53,8 +53,8 @@ class LabelShape(AttentionShape):
 
 @dataclass
 class DebugBoxShape(AttentionShape):
-    text: str
-    confidence: float
+    text: str = ""
+    confidence: float = 0.0
     
     def __post_init__(self):
         # Debug boxes shouldn't animate
