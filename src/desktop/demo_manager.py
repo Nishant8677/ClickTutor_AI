@@ -5,7 +5,7 @@ from src.lesson_engine import parse_lesson_steps
 from src.ocr_locator import extract_ocr_data
 
 class DemoManager(QObject):
-    demo_started = pyqtSignal()
+    demo_started = pyqtSignal(str)
     demo_stopped = pyqtSignal()
     step_changed = pyqtSignal(dict, dict) # ocr_data, step_dict
 
@@ -67,7 +67,7 @@ class DemoManager(QObject):
         self.current_step_index = -1
         self.is_running = True
         
-        self.demo_started.emit()
+        self.demo_started.emit(image_path)
         self._next_step() # Trigger first step immediately
         self.step_timer.start(self.step_duration_ms)
 

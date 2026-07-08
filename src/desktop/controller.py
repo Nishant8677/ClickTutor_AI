@@ -227,9 +227,9 @@ class DesktopController:
         self.ui.lbl_status.setText(f"Playing Demo: {demo_id}")
         self.demo_manager.start_demo(demo_id)
 
-    def _on_demo_started(self):
+    def _on_demo_started(self, image_path):
         self.is_debug_mode = False
-        self.overlay.set_background("sample2.png", show=True)
+        self.overlay.set_background(image_path, show=True)
         # We can implement full presentation mode hiding here in the future
         # self.ui.hide()
 
