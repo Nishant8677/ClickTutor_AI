@@ -1,0 +1,9 @@
+{
+    "metadata": {
+        "title": "Rotate Image",
+        "difficulty": "Medium",
+        "topic": "Matrix"
+    },
+    "screenshot": "sample2.png",
+    "lesson_text": "STEP 1\nTITLE: Identify the input\nANCHOR: matrix\nCONTEXT: You are given an n x n 2D matrix\nATTENTION: rectangle\nEMPHASIS: high\nEXPLANATION: This is the 2D array representing the image.\n\nSTEP 2\nTITLE: Output requirement\nANCHOR: rotate the image\nCONTEXT: rotate the image by 90 degrees\nATTENTION: underline\nEMPHASIS: medium\nEXPLANATION: The goal is to rotate it in place without using another matrix."
+}
