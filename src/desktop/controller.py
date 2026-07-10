@@ -45,6 +45,10 @@ class DesktopUI(QWidget):
         self.btn_demo.clicked.connect(self.on_watch_demo)
         demo_layout.addWidget(self.btn_demo)
         
+        self.btn_record = QPushButton("⏺ Record MP4")
+        self.btn_record.clicked.connect(self.on_record_demo)
+        demo_layout.addWidget(self.btn_record)
+        
         self.chk_fake_demo = QCheckBox("Presentation Mode (Video Record)")
         self.chk_fake_demo.setToolTip("If checked, 'Capture & Ask' will play the selected offline demo instead of calling AI.")
         demo_layout.addWidget(self.chk_fake_demo)
@@ -95,6 +99,12 @@ class DesktopUI(QWidget):
         if demo_id:
             self.controller.start_demo(demo_id)
 
+    def on_record_demo(self):
+        demo_id = self.demo_dropdown.currentData()
+        if demo_id:
+            self.lbl_status.setText(f"Recording {demo_id}...")
+            self.controller.start_recording(demo_id)
+            
     def on_capture_ask(self):
         question = self.text_question.toPlainText().strip()
         if question:
@@ -129,6 +139,7 @@ class DesktopController:
     def __init__(self, default_image="sample2.png"):
         from src.desktop.capture import CaptureEngine
         from src.desktop.demo_manager import DemoManager
+        from src.desktop.recorder import Mp4Recorder
         
         self.image_path = default_image
         self.ocr_data = None
@@ -143,6 +154,11 @@ class DesktopController:
         
         self.demo_manager.demo_started.connect(self._on_demo_started)
         self.demo_manager.demo_stopped.connect(self._on_demo_stopped)
+        
+        # Recorder for Demo Videos
+        self.recorder = Mp4Recorder(overlay=self.overlay, fps=15)
+        self.recorder.recording_finished.connect(self._on_recording_finished)
+        self.is_recording_mode = False
         self.demo_manager.step_changed.connect(self._on_demo_step_changed)
         
         self.lesson_steps = []
@@ -247,6 +263,11 @@ class DesktopController:
     def start_demo(self, demo_id):
         self.ui.lbl_status.setText(f"Playing Demo: {demo_id}")
         self.demo_manager.start_demo(demo_id)
+        
+    def start_recording(self, demo_id):
+        self.is_recording_mode = True
+        self.recorder.start_recording()
+        self.start_demo(demo_id)
 
     def _on_demo_started(self, image_path):
         self.is_debug_mode = False
@@ -255,7 +276,17 @@ class DesktopController:
         # self.ui.hide()
 
     def _on_demo_stopped(self):
-        self.ui.lbl_status.setText("Demo stopped. Ready.")
+        self.overlay.set_shapes([])
+        
+        if self.is_recording_mode:
+            self.ui.lbl_status.setText("Compiling MP4... Please wait.")
+            self.recorder.stop_recording("demo_output.mp4")
+            self.is_recording_mode = False
+        else:
+            self.ui.lbl_status.setText("Demo stopped. Ready.")
+
+    def _on_recording_finished(self, path):
+        self.ui.lbl_status.setText(f"MP4 saved to {path}! Ready.")
         self.overlay.clear()
 
     def _on_demo_step_changed(self, ocr_data, step_data):
