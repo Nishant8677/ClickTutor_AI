@@ -50,7 +50,19 @@ class Mp4Recorder(QObject):
         arr = bytearray(ptr)
         
         import numpy as np
-        frame = np.array(arr).reshape((height, width, 3))
+        # Handle QImage 32-bit row alignment padding using strides
+        frame = np.ndarray(
+            shape=(height, width, 3),
+            dtype=np.uint8,
+            buffer=arr,
+            offset=0,
+            strides=(image.bytesPerLine(), 3, 1)
+        ).copy() # copy to make it contiguous
+        
+        # Ensure dimensions are even for H264 encoding
+        if height % 2 != 0 or width % 2 != 0:
+            frame = frame[:height - (height % 2), :width - (width % 2), :]
+            
         self.frames.append(frame)
 
     def _save_mp4(self, output_path):
