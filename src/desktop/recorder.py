@@ -1,7 +1,11 @@
 import os
+import logging
+import numpy as np
 import imageio
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 from PyQt6.QtGui import QPixmap, QImage
+
+logger = logging.getLogger(__name__)
 
 class Mp4Recorder(QObject):
     recording_finished = pyqtSignal(str) # Emits the output path when done
@@ -48,8 +52,7 @@ class Mp4Recorder(QObject):
         ptr = image.bits()
         ptr.setsize(image.sizeInBytes())
         arr = bytearray(ptr)
-        
-        import numpy as np
+
         # Handle QImage 32-bit row alignment padding using strides
         frame = np.ndarray(
             shape=(height, width, 3),
@@ -57,7 +60,7 @@ class Mp4Recorder(QObject):
             buffer=arr,
             offset=0,
             strides=(image.bytesPerLine(), 3, 1)
-        ).copy() # copy to make it contiguous
+        ).copy()  # copy to make it contiguous
         
         # Ensure dimensions are even for H264 encoding
         if height % 2 != 0 or width % 2 != 0:
@@ -67,17 +70,12 @@ class Mp4Recorder(QObject):
 
     def _save_mp4(self, output_path):
         if not self.frames:
-            print("No frames captured.")
             return
-            
-        print(f"Saving MP4 ({len(self.frames)} frames) to {output_path}...")
+
         try:
-            # We use macro_block_size=None or 1 if dimensions aren't divisible by 16, 
-            # but imageio usually handles it.
             writer = imageio.get_writer(output_path, fps=self.fps, macro_block_size=None)
             for frame in self.frames:
                 writer.append_data(frame)
             writer.close()
-            print("MP4 saved successfully!")
         except Exception as e:
-            print(f"Failed to save MP4: {e}")
+            logger.error("Failed to save MP4 to '%s': %s", output_path, e)

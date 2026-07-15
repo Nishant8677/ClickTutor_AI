@@ -95,9 +95,6 @@ if uploaded_file:
     )
 
     if image_changed:
-
-        print("New image detected")
-
         st.session_state.last_uploaded_image = current_image
 
         for key in [

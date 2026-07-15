@@ -24,7 +24,6 @@ def classify_heuristically(ocr_data):
     # If any keyword is found, classify as code
     intersection = CODE_KEYWORDS.intersection(word_set)
     if intersection:
-        print(f"Heuristics hit on keywords: {intersection}")
         return "code"
 
     return None
@@ -60,7 +59,6 @@ def classify_with_gemini(image_path):
                     return cat
             return "other"
     except Exception as e:
-        print(f"Gemini classification failed: {e}")
         return "other"
 
 def classify_screenshot(image_path, ocr_data):

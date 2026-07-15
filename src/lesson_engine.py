@@ -235,9 +235,6 @@ EXPLANATION:
             highlighted_step["highlighted_image"] = highlighted_image
             highlighted_steps.append(highlighted_step)
 
-        print("PARSED LESSON STEPS:")
-        print(highlighted_steps)
-
         return highlighted_steps
 
     def generate_lesson(self, question, history, explanation_text):
@@ -252,12 +249,10 @@ EXPLANATION:
 
         try:
             with Image.open(self.image_path) as image:
-                print("Before Gemini")
                 response = model.generate_content([
                     prompt,
                     image
                 ])
-                print("After Gemini")
 
             answer = response.text
             parsed_steps = parse_lesson_steps(answer)
@@ -269,7 +264,6 @@ EXPLANATION:
             else:
                 anchor = get_visible_text(answer)
                 context = get_context_text(answer)
-                print("FALLBACK ANCHOR:", anchor, "CONTEXT:", context)
 
                 if anchor and anchor.strip().upper() != "NONE":
                     box = find_text(

@@ -35,3 +35,4 @@ streamlit==1.58.0
 mss==9.0.1
 imageio==2.36.1
 imageio-ffmpeg==0.5.1
+numpy

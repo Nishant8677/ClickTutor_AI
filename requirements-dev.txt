@@ -1,0 +1,4 @@
+# Development-only dependencies (not required to run ClickTutor)
+# Install with: pip install -r requirements-dev.txt
+
+matplotlib  # Used in tools/benchmark.py for chart generation

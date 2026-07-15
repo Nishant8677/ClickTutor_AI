@@ -1,0 +1,9 @@
+{
+    "metadata": {
+        "title": "Kth Missing Positive Number",
+        "difficulty": "Easy",
+        "topic": "Arrays & Binary Search"
+    },
+    "screenshot": "kth_missing.png",
+    "lesson_text": "STEP 1\nTITLE: The Core Problem\nANCHOR: kth positive integer\nCONTEXT: Return the kth positive integer that is missing\nATTENTION: underline\nEMPHASIS: medium\nEXPLANATION: We need to find the k-th missing number. If the array had no missing numbers, the value at any index 'i' would simply be 'i + 1'.\n\nSTEP 2\nTITLE: The Missing Count Insight\nANCHOR: [2,3,4,7,11]\nCONTEXT: Input: arr = [2,3,4,7,11]\nATTENTION: rectangle\nEMPHASIS: high\nEXPLANATION: Look at the number 7 at index 3. In a perfect array, index 3 should hold the number 4. Since it holds 7, we know exactly (7 - 4) = 3 numbers are missing before it!\n\nSTEP 3\nTITLE: Deciding Where to Search\nANCHOR: k = 5\nCONTEXT: k = 5\nATTENTION: circle\nEMPHASIS: high\nEXPLANATION: Since we need the 5th missing number, and only 3 numbers are missing before the 7, we immediately know our target must be in the right half of the array.\n\nSTEP 4\nTITLE: The Optimal Strategy\nANCHOR: strictly increasing order\nCONTEXT: sorted in a strictly increasing order\nATTENTION: rectangle\nEMPHASIS: high\nEXPLANATION: Because the array is sorted, we don't have to count one by one. We can use Binary Search to find the exact boundary in O(log N) time!"
+}

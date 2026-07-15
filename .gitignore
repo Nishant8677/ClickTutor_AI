@@ -1,14 +1,55 @@
+# Virtual environment
 venv/
+
+# Environment variables
 .env
-sample.png
-sample2.png
+
+# Python cache
 __pycache__/
 *.pyc
+*.pyo
+
+# Runtime-generated artifacts (captures, highlights, recordings, logs)
+runtime/
+.temp/
+
+# Generated images in project root (legacy paths, still ignored for safety)
 temp_image.png
 selected_region.png
 screenshot.png
 highlighted_image.png
-.clicktutor_sessions/
 *_highlighted.png
-clicky_repo/
+debug_*.png
+*_capture.png
+current_capture.png
 
+# Test images (not committed — stored in assets/test_images/ or demo/)
+sample.png
+sample2.png
+
+# Video recordings
+*.mp4
+
+# Benchmark outputs
+benchmark_chart.png
+benchmark_results.json
+
+# Logs
+*.log
+
+# Sessions
+.clicktutor_sessions/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Archive (optional: remove if you want archive to be tracked)
+# archive/
+
+# Old experiment clones (review before committing)
+clicky_repo/

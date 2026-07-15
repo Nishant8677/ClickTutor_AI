@@ -41,7 +41,6 @@ def is_useful_partial(left, right):
 
 
 def extract_ocr_data(image_path):
-    print("Running OCR...")
     image = Image.open(image_path)
 
     # Convert to grayscale
@@ -147,7 +146,6 @@ def get_line_texts(words):
 
 
 def find_text(ocr_data, target_text, context_text=None):
-    print(f"Searching OCR for target: '{target_text}' (Context: '{context_text}')")
 
     if not target_text:
         return None
@@ -184,7 +182,6 @@ def find_text(ocr_data, target_text, context_text=None):
                 best_score = score
                 best_cand = cand
         
-        print(f"Selected candidate based on context score: {best_score}")
         return make_box(best_cand, scale)
 
     # =====================================
@@ -223,7 +220,6 @@ def find_text(ocr_data, target_text, context_text=None):
                     line_candidates.append(matching_words)
 
         if line_candidates:
-            print("Found Line-Based Phrase Matcher Candidates!")
             return select_best(line_candidates)
 
     # =====================================
@@ -242,12 +238,9 @@ def find_text(ocr_data, target_text, context_text=None):
                 candidates.append(words[i:i+n])
         
         if candidates:
-            print("Found Exact Phrase Candidates!")
             return select_best(candidates)
 
-    # =====================================
     # PASS 2 : Exact word
-    # =====================================
     candidates = []
     for target in target_words:
         for w in words:
@@ -255,7 +248,6 @@ def find_text(ocr_data, target_text, context_text=None):
                 candidates.append([w])
     
     if candidates:
-        print("Found Exact Word Candidates!")
         return select_best(candidates)
 
     # =====================================
@@ -270,7 +262,6 @@ def find_text(ocr_data, target_text, context_text=None):
                 candidates.append(words[i:i+n])
         
         if candidates:
-            print("Found Fuzzy Phrase Candidates!")
             return select_best(candidates)
 
     # =====================================
@@ -294,22 +285,17 @@ def find_text(ocr_data, target_text, context_text=None):
         # Select candidates that match the highest similarity score
         top_score = best_matches[0][0]
         candidates = [item[1] for item in best_matches if item[0] == top_score]
-        print("Found Fuzzy Word Candidates!")
         return select_best(candidates)
 
-    # =====================================
     # PASS 5 : Conservative partial match
-    # =====================================
     candidates = []
     for target in target_words:
         for w in words:
             word = w["text"]
             if is_useful_partial(target, word):
                 candidates.append([w])
-    
+
     if candidates:
-        print("Found Partial Match Candidates!")
         return select_best(candidates)
 
-    print("Not Found")
     return None

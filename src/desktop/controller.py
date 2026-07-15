@@ -1,11 +1,12 @@
+import logging
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QHBoxLayout, QComboBox, QCheckBox
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QFontMetrics, QFont
 from src.attention.overlay import TransparentOverlay
 from src.attention.shapes import RectangleShape, CircleShape, UnderlineShape, LabelShape, DebugBoxShape
 from src.ocr_locator import extract_ocr_data, build_words, find_text
-from src.lesson_engine import parse_lesson_steps
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+logger = logging.getLogger(__name__)
 
 class LessonWorker(QThread):
     finished = pyqtSignal(list, str)
@@ -170,12 +171,11 @@ class DesktopController:
         self.overlay.show()
         self.ui.show()
         
-        print(f"Controller: Loading OCR data for {self.image_path}")
         try:
             self.ocr_data = extract_ocr_data(self.image_path)
             self.overlay.set_background(self.image_path, show=False)
         except Exception as e:
-            print(f"Error loading initial OCR: {e}")
+            logger.error("Failed to load initial OCR data: %s", e)
 
     def capture_and_generate(self, question):
         self._interrupt_demo()
@@ -235,12 +235,10 @@ class DesktopController:
             else:
                 shape = RectangleShape(x=box["left"], y=box["top"], width=box["width"], height=box["height"])
                 
-            from PyQt6.QtGui import QFontMetrics, QFont
             label_text = f"Step {step['step']}: {step['title']}"
             font = QFont("Arial", 16, QFont.Weight.Bold)
             fm = QFontMetrics(font)
-            # Add some padding around the text
-            text_width = fm.horizontalAdvance(label_text) + 30 
+            text_width = fm.horizontalAdvance(label_text) + 30
             text_height = fm.height() + 10
             
             shapes = [
@@ -272,8 +270,6 @@ class DesktopController:
     def _on_demo_started(self, image_path):
         self.is_debug_mode = False
         self.overlay.set_background(image_path, show=True)
-        # We can implement full presentation mode hiding here in the future
-        # self.ui.hide()
 
     def _on_demo_stopped(self):
         self.overlay.set_shapes([])
