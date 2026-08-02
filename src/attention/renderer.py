@@ -1,6 +1,15 @@
-from PyQt6.QtGui import QPainter, QPen, QColor, QFont
-from PyQt6.QtCore import Qt, QRect, QPoint
-from src.attention.shapes import AttentionShape, RectangleShape, CircleShape, UnderlineShape, LabelShape, DebugBoxShape
+from PyQt6.QtCore import QPoint, QRect, Qt
+from PyQt6.QtGui import QColor, QFont, QPainter, QPen
+
+from src.attention.shapes import (
+    AttentionShape,
+    CircleShape,
+    DebugBoxShape,
+    LabelShape,
+    RectangleShape,
+    UnderlineShape,
+)
+
 
 class Renderer:
     def __init__(self, painter: QPainter):
@@ -16,7 +25,7 @@ class Renderer:
         self._draw_shape(shape)
         
         # Layer 3: Text / Labels
-        if isinstance(shape, LabelShape) or isinstance(shape, DebugBoxShape):
+        if isinstance(shape, (LabelShape, DebugBoxShape)):
             self._draw_text(shape)
 
     def _get_color_with_opacity(self, hex_color_or_name, opacity, extra_alpha_mult=1.0):
@@ -50,10 +59,7 @@ class Renderer:
         elif isinstance(shape, UnderlineShape):
             y = shape.y + shape.height + shape.padding
             self.painter.drawLine(int(shape.x), int(y), int(shape.x + shape.width), int(y))
-        elif isinstance(shape, LabelShape):
-            rect = QRect(int(shape.x), int(shape.y), int(shape.width), int(shape.height))
-            self.painter.drawRect(rect)
-        elif isinstance(shape, DebugBoxShape):
+        elif isinstance(shape, (LabelShape, DebugBoxShape)):
             rect = QRect(int(shape.x), int(shape.y), int(shape.width), int(shape.height))
             self.painter.drawRect(rect)
 

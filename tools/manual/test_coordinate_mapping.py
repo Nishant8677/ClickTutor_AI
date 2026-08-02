@@ -1,15 +1,16 @@
-import sys
-import time
-from PyQt6.QtWidgets import QApplication, QWidget
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QPainter
 import os
+import sys
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPainter
+from PyQt6.QtWidgets import QApplication, QWidget
 
 # Add root directory to python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.attention.shapes import RectangleShape
 from src.attention.renderer import Renderer
+from src.attention.shapes import RectangleShape
+
 
 class CoordinateCalibrationOverlay(QWidget):
     def __init__(self):

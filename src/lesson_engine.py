@@ -1,15 +1,17 @@
 import logging
 import re
 from pathlib import Path
+
 from PIL import Image
-from src.tutor import generate_content, response_text
-from src.ocr_locator import find_text
+
 from src.highlighter import highlight_box
 from src.lesson_validator import (
     VALID_ATTENTIONS,
     VALID_EMPHASES,
     validate_lesson_steps,
 )
+from src.ocr_locator import find_text
+from src.tutor import generate_content, response_text
 
 logger = logging.getLogger(__name__)
 

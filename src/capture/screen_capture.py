@@ -1,9 +1,10 @@
-import mss
-from PIL import Image
+import logging
 import os
 import subprocess
 import tempfile
-import logging
+
+import mss
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 

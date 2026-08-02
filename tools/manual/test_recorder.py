@@ -1,6 +1,7 @@
 import sys
+
 from PyQt6.QtWidgets import QApplication, QWidget
-from PyQt6.QtGui import QPixmap, QColor
+
 from src.desktop.recorder import Mp4Recorder
 
 app = QApplication(sys.argv)

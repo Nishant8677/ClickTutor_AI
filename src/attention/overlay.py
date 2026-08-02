@@ -1,9 +1,11 @@
-from PyQt6.QtWidgets import QApplication, QWidget
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPainter, QPixmap
-from src.attention.renderer import Renderer
+from PyQt6.QtWidgets import QApplication, QWidget
+
 from src.attention.animation import AnimationEngine
 from src.attention.coordinates import CoordinateMapper
+from src.attention.renderer import Renderer
+
 
 class TransparentOverlay(QWidget):
     def __init__(self, screen=None):

@@ -1,6 +1,8 @@
 import logging
+
 import keyboard
 from PyQt6.QtCore import QObject, pyqtSignal
+
 from src.input.events import InputAction
 
 logger = logging.getLogger(__name__)

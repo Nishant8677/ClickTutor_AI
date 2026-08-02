@@ -4,6 +4,8 @@ These are deterministic and import no Qt, PIL, or network code, so they run
 anywhere including CI without a display.
 """
 
+import dataclasses
+
 import pytest
 
 from src.attention.coordinates import CoordinateMapper
@@ -134,5 +136,5 @@ class TestImmutability:
     def test_mapper_is_frozen(self):
         mapper = CoordinateMapper.identity()
 
-        with pytest.raises(Exception):
+        with pytest.raises(dataclasses.FrozenInstanceError):
             mapper.scale = 2.0  # type: ignore[misc]

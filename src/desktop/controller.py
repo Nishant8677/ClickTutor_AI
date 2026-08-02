@@ -1,11 +1,31 @@
 import logging
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QHBoxLayout, QComboBox, QCheckBox, QInputDialog, QMessageBox
+
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QFontMetrics, QFont
+from PyQt6.QtGui import QFont, QFontMetrics
+from PyQt6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from src.attention.overlay import TransparentOverlay
-from src.attention.shapes import RectangleShape, CircleShape, UnderlineShape, LabelShape, DebugBoxShape
-from src.ocr_locator import extract_ocr_data, build_words, find_text
-from src.input import InputManager, TutorState, InputAction
+from src.attention.shapes import (
+    CircleShape,
+    DebugBoxShape,
+    LabelShape,
+    RectangleShape,
+    UnderlineShape,
+)
+from src.input import InputAction, InputManager, TutorState
+from src.ocr_locator import build_words, extract_ocr_data, find_text
 
 logger = logging.getLogger(__name__)
 

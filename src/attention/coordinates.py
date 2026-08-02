@@ -12,8 +12,8 @@ neither Qt nor PIL so it can be unit tested without a display.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 # A bounding box as produced by src.ocr_locator.find_text. Values are floats
 # because callers may divide by the OCR upscale factor before mapping.
@@ -53,7 +53,7 @@ class CoordinateMapper:
         source_height: int,
         target_width: int,
         target_height: int,
-    ) -> "CoordinateMapper":
+    ) -> CoordinateMapper:
         """Builds a mapper that fits the source inside the target, centred.
 
         Args:
@@ -97,7 +97,7 @@ class CoordinateMapper:
         )
 
     @classmethod
-    def identity(cls, width: int = 1, height: int = 1) -> "CoordinateMapper":
+    def identity(cls, width: int = 1, height: int = 1) -> CoordinateMapper:
         """Builds a 1:1 mapper, used before any source image is known."""
         return cls(
             source_width=width,

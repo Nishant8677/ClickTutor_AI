@@ -2,10 +2,10 @@ import logging
 import os
 import time
 
-from PIL import Image
-from dotenv import load_dotenv
 import google.generativeai as genai
+from dotenv import load_dotenv
 from google.api_core import exceptions as google_exceptions
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 

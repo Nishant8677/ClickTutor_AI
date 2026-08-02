@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
+
 class AnimationType(Enum):
     NONE = auto()
     FADE = auto()

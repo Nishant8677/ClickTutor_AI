@@ -1,6 +1,8 @@
 import os
 import subprocess
+
 import mss
+
 
 class CaptureEngine:
     def __init__(self, temp_dir=".temp"):

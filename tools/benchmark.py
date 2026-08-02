@@ -1,13 +1,16 @@
-import time
 import json
 import os
-from dotenv import load_dotenv
+import time
+
 import google.generativeai as genai
-import PIL.Image
 import numpy as np
+import PIL.Image
+from dotenv import load_dotenv
+
 from src.desktop.capture import CaptureEngine
-from src.ocr_locator import extract_ocr_data, find_text
 from src.lesson_engine import LessonEngine, parse_lesson_steps
+from src.ocr_locator import extract_ocr_data, find_text
+
 
 def run_benchmark(iterations=5):
     load_dotenv()
@@ -95,7 +98,8 @@ def run_benchmark(iterations=5):
     print("\n\n================ RESULTS ================")
     
     def get_stats(data):
-        if not data: return {}
+        if not data:
+            return {}
         return {
             "avg": float(np.mean(data)),
             "med": float(np.median(data)),
@@ -118,7 +122,7 @@ def run_benchmark(iterations=5):
     with open("benchmark_results.json", "w") as f:
         json.dump(results, f, indent=4)
         
-    print(f"Results saved to benchmark_results.json")
+    print("Results saved to benchmark_results.json")
     
     # Generate Chart if matplotlib is installed
     try:

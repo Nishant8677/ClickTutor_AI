@@ -1,10 +1,10 @@
 from pathlib import Path
 from uuid import uuid4
 
-from PIL import Image
 import streamlit as st
-from src.chat_tutor import TutorSession
+from PIL import Image
 
+from src.chat_tutor import TutorSession
 
 SESSION_ROOT = Path(".clicktutor_sessions")
 

@@ -1,10 +1,10 @@
 import logging
-from typing import Callable, List
+from collections.abc import Callable
 
 from PyQt6.QtCore import QObject
 
-from src.input.state_machine import TutorState
 from src.input.events import InputAction
+from src.input.state_machine import TutorState
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class InputManager(QObject):
     def __init__(self) -> None:
         super().__init__()
         self.current_state = TutorState.IDLE
-        self.listeners: List[Callable[[InputAction], None]] = []
+        self.listeners: list[Callable[[InputAction], None]] = []
 
     def set_state(self, new_state: TutorState) -> None:
         if self.current_state != new_state:

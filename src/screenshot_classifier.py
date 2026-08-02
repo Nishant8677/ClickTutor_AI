@@ -1,13 +1,14 @@
 import logging
 
 from PIL import Image
+
+from src.ocr_locator import build_words
 from src.tutor import (
     ModelResponseError,
     TutorConfigError,
     generate_content,
     response_text,
 )
-from src.ocr_locator import build_words
 
 logger = logging.getLogger(__name__)
 

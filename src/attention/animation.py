@@ -1,6 +1,9 @@
 import math
+
 from PyQt6.QtCore import QObject, QTimer
+
 from src.attention.shapes import AnimationType
+
 
 class AnimationEngine(QObject):
     def __init__(self, update_callback):

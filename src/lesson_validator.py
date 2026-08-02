@@ -1,3 +1,5 @@
+from typing import Any
+
 # The vocabulary the lesson prompt asks Gemini to use. Exported so the parser
 # can coerce out-of-vocabulary values instead of passing them to the renderer,
 # which would silently treat anything unrecognised as a rectangle.
@@ -9,15 +11,20 @@ REQUIRED_STEP_KEYS = (
 )
 
 
-def validate_lesson_steps(steps):
-    """
-    Validates a list of structured lesson steps.
-    Returns (is_valid, errors_list)
+def validate_lesson_steps(steps: Any) -> tuple[bool, list[str]]:
+    """Validates a list of structured lesson steps.
+
+    Args:
+        steps: The parsed steps. Deliberately untyped at the boundary because
+            this runs on model-derived data that may be any shape at all.
+
+    Returns:
+        A ``(is_valid, errors)`` pair. ``errors`` is empty when valid.
     """
     if not isinstance(steps, list):
         return False, ["Lesson steps must be a list."]
 
-    errors = []
+    errors: list[str] = []
     valid_attentions = VALID_ATTENTIONS
     valid_emphases = VALID_EMPHASES
 

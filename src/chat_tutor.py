@@ -1,8 +1,8 @@
-from pathlib import Path
-from src.tutor import explain_image
-from src.ocr_locator import extract_ocr_data
 from src.lesson_engine import LessonEngine
+from src.ocr_locator import extract_ocr_data
 from src.screenshot_classifier import classify_screenshot
+from src.tutor import explain_image
+
 
 class TutorSession:
     def __init__(self, image_path, mode="student"):

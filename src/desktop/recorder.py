@@ -1,9 +1,10 @@
-import os
 import logging
-import numpy as np
+import os
+
 import imageio
+import numpy as np
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
-from PyQt6.QtGui import QPixmap, QImage
+from PyQt6.QtGui import QImage
 
 logger = logging.getLogger(__name__)
 

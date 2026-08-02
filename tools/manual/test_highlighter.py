@@ -1,5 +1,5 @@
-from src.ocr_locator import extract_ocr_data, find_text
 from src.highlighter import highlight_box
+from src.ocr_locator import extract_ocr_data, find_text
 
 ocr_data = extract_ocr_data("sample2.png")
 box = find_text(

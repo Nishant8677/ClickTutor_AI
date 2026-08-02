@@ -1,5 +1,4 @@
 import sys
-import os
 from pathlib import Path
 
 # Add project root to path
@@ -7,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.chat_tutor import TutorSession
 from src.lesson_validator import validate_lesson_steps
+
 
 def run_screenshot_test_suite():
     tests_dir = Path("tests")

@@ -1,15 +1,33 @@
+import logging
+import os
 import re
 from difflib import SequenceMatcher
-from PIL import Image
-import pytesseract
+from pathlib import Path
+from typing import Any
 
+import pytesseract
+from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 OCR_SCALE = 3
 MIN_CONFIDENCE = 0
 FUZZY_MATCH_THRESHOLD = 0.82
 
+# Anything Tesseract can be pointed at: a path, or an already-loaded image.
+ImageSource = str | os.PathLike | Image.Image
 
-def normalize(text):
+# The dict pytesseract returns, plus the "_scale" key this module adds.
+OcrData = dict[str, Any]
+
+# A bounding box in image pixels.
+Box = dict[str, int]
+
+# One OCR word, as produced by build_words.
+Word = dict[str, Any]
+
+
+def normalize(text: str) -> str:
     text = text.lower().strip()
     text = re.sub(
         r"[^a-z0-9]+",
@@ -19,32 +37,52 @@ def normalize(text):
     return text
 
 
-def clean_context(text):
+def clean_context(text: str) -> str:
     return text.lower().strip()
 
 
-def confidence_value(value):
+def confidence_value(value: Any) -> float:
     try:
         return float(value)
     except (TypeError, ValueError):
         return -1.0
 
 
-def similarity(left, right):
+def similarity(left: str, right: str) -> float:
     return SequenceMatcher(None, left, right).ratio()
 
 
-def is_useful_partial(left, right):
+def is_useful_partial(left: str, right: str) -> bool:
     if len(left) < 4 or len(right) < 4:
         return False
     return left in right or right in left
 
 
-def extract_ocr_data(image_or_path):
-    if isinstance(image_or_path, str):
-        image = Image.open(image_or_path)
-    else:
+def extract_ocr_data(image_or_path: ImageSource) -> OcrData:
+    """Runs Tesseract over an image and returns its raw word data.
+
+    Args:
+        image_or_path: A filesystem path, or an already-loaded PIL Image.
+
+    Returns:
+        The pytesseract DICT output, with an added ``_scale`` key recording the
+        upscale factor that every coordinate in it is expressed in.
+
+    Raises:
+        OSError: If a path was given and the file cannot be read.
+        pytesseract.TesseractNotFoundError: If the Tesseract binary is missing.
+    """
+    # os.PathLike was previously not handled: a pathlib.Path fell through to
+    # the else-branch and died on .copy().
+    if isinstance(image_or_path, (str, os.PathLike)):
+        image = Image.open(Path(image_or_path))
+    elif isinstance(image_or_path, Image.Image):
         image = image_or_path.copy()
+    else:
+        raise TypeError(
+            f"extract_ocr_data expects a path or a PIL Image, "
+            f"got {type(image_or_path).__name__}"
+        )
 
     # Convert to grayscale
     image = image.convert("L")
@@ -66,7 +104,7 @@ def extract_ocr_data(image_or_path):
     return ocr_data
 
 
-def scale_box_to_image(box, scale):
+def scale_box_to_image(box: Box | None, scale: int) -> Box | None:
     if box is None or scale == 1:
         return box
 
@@ -83,7 +121,7 @@ def scale_box_to_image(box, scale):
     }
 
 
-def make_box(words, scale):
+def make_box(words: list[Word], scale: int) -> Box | None:
     left = min(w["left"] for w in words)
     top = min(w["top"] for w in words)
     right = max(w["left"] + w["width"] for w in words)
@@ -100,8 +138,8 @@ def make_box(words, scale):
     )
 
 
-def build_words(ocr_data, min_confidence=MIN_CONFIDENCE):
-    words = []
+def build_words(ocr_data: OcrData, min_confidence: float = MIN_CONFIDENCE) -> list[Word]:
+    words: list[Word] = []
     n = len(ocr_data.get("text", []))
 
     block_nums = ocr_data.get("block_num", [0] * n)
@@ -133,8 +171,8 @@ def build_words(ocr_data, min_confidence=MIN_CONFIDENCE):
     return words
 
 
-def get_line_texts(words):
-    lines = {}
+def get_line_texts(words: list[Word]) -> dict[tuple, str]:
+    lines: dict[tuple, list[Word]] = {}
     for w in words:
         lid = w["line_id"]
         if lid not in lines:
@@ -148,7 +186,23 @@ def get_line_texts(words):
     return line_texts
 
 
-def find_text(ocr_data, target_text, context_text=None):
+def find_text(
+    ocr_data: OcrData,
+    target_text: str,
+    context_text: str | None = None,
+) -> Box | None:
+    """Locates text on screen using six progressively looser match passes.
+
+    Args:
+        ocr_data: Output of :func:`extract_ocr_data`.
+        target_text: The ANCHOR string from a lesson step.
+        context_text: The CONTEXT string, used to disambiguate when the same
+            anchor appears more than once on screen.
+
+    Returns:
+        A bounding box in image pixels, or None if nothing matched. Coordinates
+        are already divided back down by the OCR upscale factor.
+    """
 
     if not target_text:
         return None
@@ -200,7 +254,7 @@ def find_text(ocr_data, target_text, context_text=None):
             line_groups[lid].append(w)
 
         line_candidates = []
-        for lid, line_words in line_groups.items():
+        for line_words in line_groups.values():
             sorted_words = sorted(line_words, key=lambda x: x["left"])
             line_text_concat = "".join(w["text"] for w in sorted_words)
 
