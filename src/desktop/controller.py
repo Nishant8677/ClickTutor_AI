@@ -25,7 +25,8 @@ from src.attention.shapes import (
     UnderlineShape,
 )
 from src.input import InputAction, InputManager, TutorState
-from src.ocr_locator import build_words, extract_ocr_data, find_text
+from src.locator import OcrLocator
+from src.ocr_locator import build_words, extract_ocr_data
 
 logger = logging.getLogger(__name__)
 
@@ -177,6 +178,10 @@ class DesktopController:
         self.image_path = default_image
         self.current_image = None
         self.ocr_data = None
+
+        # Injected rather than called directly, so an AI-based locator can
+        # replace this without the controller changing. See src/locator/.
+        self.locator = OcrLocator()
 
         self.input_manager = InputManager()
         self.input_manager.add_listener(self._on_input_action)
@@ -392,8 +397,8 @@ class DesktopController:
         self.input_manager.set_state(TutorState.TEACHING)
 
         step = self.lesson_steps[self.current_step_index]
-        box = find_text(self.ocr_data, step["anchor"], step["context"])
-        self._render_box(box, step)
+        location = self.locator.locate(self.ocr_data, step["anchor"], step["context"])
+        self._render_box(location.box if location else None, step)
 
     def _render_box(self, box, step):
         if box:
@@ -479,8 +484,8 @@ class DesktopController:
         self.overlay.clear()
 
     def _on_demo_step_changed(self, ocr_data, step_data):
-        box = find_text(ocr_data, step_data["anchor"], step_data["context"])
-        self._render_box(box, step_data)
+        location = self.locator.locate(ocr_data, step_data["anchor"], step_data["context"])
+        self._render_box(location.box if location else None, step_data)
 
     def next_step(self):
         self._interrupt_demo()
