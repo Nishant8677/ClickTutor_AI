@@ -40,8 +40,11 @@ def is_useful_partial(left, right):
     return left in right or right in left
 
 
-def extract_ocr_data(image_path):
-    image = Image.open(image_path)
+def extract_ocr_data(image_or_path):
+    if isinstance(image_or_path, str):
+        image = Image.open(image_or_path)
+    else:
+        image = image_or_path.copy()
 
     # Convert to grayscale
     image = image.convert("L")

@@ -1,10 +1,11 @@
 import logging
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QHBoxLayout, QComboBox, QCheckBox
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QHBoxLayout, QComboBox, QCheckBox, QInputDialog, QMessageBox
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QFontMetrics, QFont
 from src.attention.overlay import TransparentOverlay
 from src.attention.shapes import RectangleShape, CircleShape, UnderlineShape, LabelShape, DebugBoxShape
 from src.ocr_locator import extract_ocr_data, build_words, find_text
+from src.input import InputManager, TutorState, InputAction
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ class DesktopUI(QWidget):
         layout.addWidget(self.text_question)
         
         self.btn_capture = QPushButton("Capture & Ask")
-        self.btn_capture.clicked.connect(self.on_capture_ask)
+        self.btn_capture.clicked.connect(lambda: self.controller.input_manager.handle_action(InputAction.CAPTURE_SCREEN))
         layout.addWidget(self.btn_capture)
         
         nav_layout = QHBoxLayout()
@@ -80,7 +81,7 @@ class DesktopUI(QWidget):
         layout.addLayout(nav_layout)
         
         self.btn_debug = QPushButton("Toggle OCR Debug Mode (F8)")
-        self.btn_debug.clicked.connect(self.controller.toggle_debug)
+        self.btn_debug.clicked.connect(lambda: self.controller.input_manager.handle_action(InputAction.TOGGLE_DEBUG))
         layout.addWidget(self.btn_debug)
         
         self.btn_quit = QPushButton("Exit ClickTutor")
@@ -123,32 +124,45 @@ class DesktopUI(QWidget):
     def keyPressEvent(self, event):
         # Interrupt demo on any key press in UI
         if self.controller.demo_manager.is_running:
-            self.controller.demo_manager.stop_demo()
+            self.controller.input_manager.handle_action(InputAction.CANCEL_LESSON)
             
         if event.key() == Qt.Key.Key_F8:
-            self.controller.toggle_debug()
+            self.controller.input_manager.handle_action(InputAction.TOGGLE_DEBUG)
+        elif event.key() == Qt.Key.Key_Escape:
+            self.controller.input_manager.handle_action(InputAction.CANCEL_LESSON)
         else:
             super().keyPressEvent(event)
             
     def mousePressEvent(self, event):
         # Interrupt demo on any mouse click in UI
         if self.controller.demo_manager.is_running:
-            self.controller.demo_manager.stop_demo()
+            self.controller.input_manager.handle_action(InputAction.CANCEL_LESSON)
         super().mousePressEvent(event)
 
 class DesktopController:
     def __init__(self, default_image="sample2.png"):
-        from src.desktop.capture import CaptureEngine
+        from src.capture import ScreenCapture
         from src.desktop.demo_manager import DemoManager
         from src.desktop.recorder import Mp4Recorder
+        from src.input.hotkeys import HotkeyManager
         
         self.image_path = default_image
         self.ocr_data = None
         
+        self.input_manager = InputManager()
+        self.input_manager.add_listener(self._on_input_action)
+        
+        self.hotkeys = HotkeyManager()
+        self.hotkeys.action_triggered.connect(self.input_manager.handle_action)
+        
+        # Ensure hotkeys are unregistered when the application closes
+        if QApplication.instance():
+            QApplication.instance().aboutToQuit.connect(self.hotkeys.stop)
+        
         self.overlay = TransparentOverlay()
         self.ui = DesktopUI(self)
         
-        self.capture_engine = CaptureEngine()
+        self.capture_engine = ScreenCapture()
         self.demo_manager = DemoManager(self.capture_engine)
         
         self.ui.populate_demos(self.demo_manager.get_available_demos())
@@ -170,6 +184,7 @@ class DesktopController:
     def start(self):
         self.overlay.show()
         self.ui.show()
+        self.hotkeys.start()
         
         try:
             self.ocr_data = extract_ocr_data(self.image_path)
@@ -177,16 +192,67 @@ class DesktopController:
         except Exception as e:
             logger.error("Failed to load initial OCR data: %s", e)
 
-    def capture_and_generate(self, question):
-        self._interrupt_demo()
-        try:
-            # Phase 3 auto-capture
-            new_image = self.capture_engine.capture(target="screen")
-            self.image_path = new_image
-            self.ocr_data = extract_ocr_data(self.image_path)
+    def _on_input_action(self, action: InputAction):
+        if action == InputAction.CAPTURE_SCREEN:
+            if self.ui.chk_fake_demo.isChecked():
+                demo_id = self.ui.demo_dropdown.currentData()
+                if demo_id:
+                    self.ui.lbl_status.setText("Processing with AI...")
+                    self.start_demo(demo_id)
+                return
+                
+            self.ui.lbl_status.setText("Capturing screen...")
+            self.input_manager.set_state(TutorState.CAPTURING)
+            
+            # Step 1: Capture
+            try:
+                self.current_image = self.capture_engine.capture()
+                self.image_path = self.current_image # Provide back-compat
+            except Exception as e:
+                logger.error("Capture error: %s", e)
+                self._show_error("Couldn't capture screen.\nPlease try again.")
+                self.input_manager.set_state(TutorState.IDLE)
+                self.ui.lbl_status.setText("Ready.")
+                return
+                
+            # Step 2: Question Popup
+            question, ok = QInputDialog.getText(self.ui, "ClickTutor", "Ask a question about the screen:")
+            if not ok or not question.strip():
+                self.input_manager.set_state(TutorState.IDLE)
+                self.ui.lbl_status.setText("Ready.")
+                return
+                
+            # Step 3: Analyze
+            self.input_manager.set_state(TutorState.ANALYZING)
+            
+            try:
+                self.ocr_data = extract_ocr_data(self.current_image)
+            except Exception as e:
+                logger.error("OCR extraction failed: %s", e)
+                # Graceful Failure: Empty screen / OCR failed
+                self._show_error("Couldn't precisely locate the text.\nPlease try capturing a different area.")
+                self.input_manager.set_state(TutorState.IDLE)
+                self.ui.lbl_status.setText("Ready.")
+                return
+                
             self.generate_lesson(question)
-        except Exception as e:
-            self.ui.lbl_status.setText(f"Capture error: {e}")
+                
+        elif action == InputAction.TOGGLE_DEBUG:
+            self.toggle_debug()
+            
+        elif action == InputAction.CANCEL_LESSON:
+            if self.demo_manager.is_running:
+                self.demo_manager.stop_demo()
+            self.input_manager.set_state(TutorState.IDLE)
+            self.overlay.set_shapes([])
+            self.ui.lbl_status.setText("Lesson cancelled. Ready.")
+
+    def _show_error(self, message):
+        msg = QMessageBox(self.ui)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setText(message)
+        msg.setWindowTitle("ClickTutor")
+        msg.exec()
 
     def generate_lesson(self, question):
         self.ui.btn_capture.setEnabled(False)
@@ -201,18 +267,37 @@ class DesktopController:
         self.ui.btn_capture.setEnabled(True)
         if not steps:
             self.ui.lbl_status.setText("Gemini didn't return any steps.")
+            self.input_manager.set_state(TutorState.IDLE)
             return
             
         self.lesson_steps = steps
         self.current_step_index = 0
         self.is_debug_mode = False
-        self.overlay.set_background(self.image_path, show=False) # Only overlay the shapes
+        self.overlay.set_background(self.image_path, show=False)
+        self.input_manager.set_state(TutorState.TEACHING)
         self.show_current_step()
         self.ui.lbl_status.setText("Lesson ready! Use Next/Prev to navigate.")
 
     def _on_lesson_error(self, error_msg):
         self.ui.btn_capture.setEnabled(True)
-        self.ui.lbl_status.setText(f"Error: {error_msg}")
+        self.input_manager.set_state(TutorState.IDLE)
+        self.ui.lbl_status.setText("Ready.")
+        
+        # Graceful Failure: Network or Gemini issue
+        reply = QMessageBox.question(
+            self.ui, 'Network Error',
+            "Network unavailable or API error. Run Demo Mode instead?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            # Fallback to a demo if available
+            demos = self.demo_manager.get_available_demos()
+            if demos:
+                demo_id = list(demos.keys())[0]
+                self.start_demo(demo_id)
+        else:
+            self._show_error(f"Error: {error_msg}")
 
     def show_current_step(self):
         self._interrupt_demo()

@@ -108,8 +108,8 @@ def format_lesson_answer(steps):
     return "\n\n".join(parts)
 
 class LessonEngine:
-    def __init__(self, image_path, ocr_data, mode="student", screenshot_type=None):
-        self.image_path = image_path
+    def __init__(self, image_or_path, ocr_data, mode="student", screenshot_type=None):
+        self.image_or_path = image_or_path
         self.ocr_data = ocr_data
         self.mode = mode
         self.screenshot_type = screenshot_type
@@ -207,7 +207,6 @@ EXPLANATION:
 """
 
     def build_step_highlights(self, steps):
-        image_path = Path(self.image_path)
         highlighted_steps = []
 
         for index, step in enumerate(steps, start=1):
@@ -222,9 +221,10 @@ EXPLANATION:
                     context
                 )
 
-                if box:
+                if box and isinstance(self.image_or_path, str):
+                    image_path = Path(self.image_or_path)
                     highlighted_image = highlight_box(
-                        self.image_path,
+                        self.image_or_path,
                         box,
                         image_path.with_name(
                             f"{image_path.stem}_step_{index}_highlighted.png"
@@ -248,11 +248,15 @@ EXPLANATION:
         lesson_steps = []
 
         try:
-            with Image.open(self.image_path) as image:
-                response = model.generate_content([
-                    prompt,
-                    image
-                ])
+            if isinstance(self.image_or_path, str):
+                image = Image.open(self.image_or_path)
+            else:
+                image = self.image_or_path
+
+            response = model.generate_content([
+                prompt,
+                image
+            ])
 
             answer = response.text
             parsed_steps = parse_lesson_steps(answer)

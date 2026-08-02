@@ -28,9 +28,14 @@ class TransparentOverlay(QWidget):
         # Kick off animation sequence for the new shapes
         self.animation_engine.start(shapes)
 
-    def set_background(self, image_path, show=True):
-        if image_path:
-            self.bg_pixmap = QPixmap(image_path)
+    def set_background(self, image_or_path, show=True):
+        if image_or_path:
+            if isinstance(image_or_path, str):
+                self.bg_pixmap = QPixmap(image_or_path)
+            else:
+                from PIL.ImageQt import ImageQt
+                qimage = ImageQt(image_or_path)
+                self.bg_pixmap = QPixmap.fromImage(qimage)
         self.show_bg = show
         self.update()
 
