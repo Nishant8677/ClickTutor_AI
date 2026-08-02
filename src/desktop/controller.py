@@ -10,22 +10,28 @@ from src.input import InputManager, TutorState, InputAction
 logger = logging.getLogger(__name__)
 
 class LessonWorker(QThread):
-    finished = pyqtSignal(list, str)
+    # Named lesson_ready rather than finished: QThread already defines a
+    # finished() signal, and redeclaring it here shadowed Qt's own.
+    lesson_ready = pyqtSignal(dict, list, str)
     error = pyqtSignal(str)
 
-    def __init__(self, image_path, ocr_data, question):
+    def __init__(self, image, question):
         super().__init__()
-        self.image_path = image_path
-        self.ocr_data = ocr_data
+        self.image = image
         self.question = question
 
     def run(self):
         try:
             from src.lesson_engine import LessonEngine
-            engine = LessonEngine(self.image_path, self.ocr_data)
+            # OCR runs on this thread, not the GUI thread. Tesseract against a
+            # 3x-upscaled full-screen image takes long enough to visibly freeze
+            # the UI, and it has to finish before Gemini can be called anyway.
+            ocr_data = extract_ocr_data(self.image)
+            engine = LessonEngine(self.image, ocr_data)
             answer, _, steps = engine.generate_lesson(self.question, [], "")
-            self.finished.emit(steps, answer)
+            self.lesson_ready.emit(ocr_data, steps, answer)
         except Exception as e:
+            logger.exception("Lesson generation failed")
             self.error.emit(str(e))
 
 class DesktopUI(QWidget):
@@ -70,12 +76,18 @@ class DesktopUI(QWidget):
         layout.addWidget(self.btn_capture)
         
         nav_layout = QHBoxLayout()
+        # Navigation routes through InputManager like every other action, so
+        # the state guard applies uniformly instead of only to the hotkeys.
         self.btn_prev = QPushButton("< Previous Step")
-        self.btn_prev.clicked.connect(self.controller.prev_step)
+        self.btn_prev.clicked.connect(
+            lambda: self.controller.input_manager.handle_action(InputAction.PREV_STEP)
+        )
         nav_layout.addWidget(self.btn_prev)
-        
+
         self.btn_next = QPushButton("Next Step >")
-        self.btn_next.clicked.connect(self.controller.next_step)
+        self.btn_next.clicked.connect(
+            lambda: self.controller.input_manager.handle_action(InputAction.NEXT_STEP)
+        )
         nav_layout.addWidget(self.btn_next)
         
         layout.addLayout(nav_layout)
@@ -107,20 +119,6 @@ class DesktopUI(QWidget):
             self.lbl_status.setText(f"Recording {demo_id}...")
             self.controller.start_recording(demo_id)
             
-    def on_capture_ask(self):
-        question = self.text_question.toPlainText().strip()
-        if question:
-            if self.chk_fake_demo.isChecked():
-                # Fake AI mode for video recording! Play the selected demo instead.
-                demo_id = self.demo_dropdown.currentData()
-                if demo_id:
-                    self.lbl_status.setText("Processing with AI...")
-                    self.controller.start_demo(demo_id)
-            else:
-                # Real AI mode
-                self.lbl_status.setText("Capturing screen...")
-                self.controller.capture_and_generate(question)
-            
     def keyPressEvent(self, event):
         # Interrupt demo on any key press in UI
         if self.controller.demo_manager.is_running:
@@ -140,20 +138,28 @@ class DesktopUI(QWidget):
         super().mousePressEvent(event)
 
 class DesktopController:
-    def __init__(self, default_image="sample2.png"):
+    def __init__(self, default_image=None):
         from src.capture import ScreenCapture
         from src.desktop.demo_manager import DemoManager
         from src.desktop.recorder import Mp4Recorder
         from src.input.hotkeys import HotkeyManager
         
         self.image_path = default_image
+        self.current_image = None
         self.ocr_data = None
-        
+
         self.input_manager = InputManager()
         self.input_manager.add_listener(self._on_input_action)
-        
+
         self.hotkeys = HotkeyManager()
-        self.hotkeys.action_triggered.connect(self.input_manager.handle_action)
+        # Queued explicitly: hotkeys arrive on the keyboard library's listener
+        # thread, and everything downstream touches Qt widgets. InputManager is
+        # a QObject built here on the GUI thread, so a queued connection posts
+        # the action to the main event loop instead of running it inline.
+        self.hotkeys.action_triggered.connect(
+            self.input_manager.handle_action,
+            Qt.ConnectionType.QueuedConnection,
+        )
         
         # Ensure hotkeys are unregistered when the application closes
         if QApplication.instance():
@@ -185,12 +191,17 @@ class DesktopController:
         self.overlay.show()
         self.ui.show()
         self.hotkeys.start()
-        
-        try:
-            self.ocr_data = extract_ocr_data(self.image_path)
-            self.overlay.set_background(self.image_path, show=False)
-        except Exception as e:
-            logger.error("Failed to load initial OCR data: %s", e)
+
+        # Only preload when a caller explicitly supplied an image. This used to
+        # default to "sample2.png", a file that does not exist in the repo, so
+        # every launch logged a FileNotFoundError and left ocr_data as None.
+        if self.image_path:
+            try:
+                self.ocr_data = extract_ocr_data(self.image_path)
+                self.overlay.set_background(self.image_path, show=False)
+            except Exception as e:
+                logger.error("Failed to load initial image %r: %s", self.image_path, e)
+                self.image_path = None
 
     def _on_input_action(self, action: InputAction):
         if action == InputAction.CAPTURE_SCREEN:
@@ -201,6 +212,11 @@ class DesktopController:
                     self.start_demo(demo_id)
                 return
                 
+            # A capture may be starting while a previous lesson is still shown.
+            # Retire it first so the old highlights do not linger over the new
+            # screenshot.
+            self._clear_lesson()
+
             self.ui.lbl_status.setText("Capturing screen...")
             self.input_manager.set_state(TutorState.CAPTURING)
             
@@ -229,30 +245,33 @@ class DesktopController:
                 self.ui.lbl_status.setText("Ready.")
                 return
                 
-            # Step 3: Analyze
+            # Step 3: Analyze. OCR and Gemini both run on the worker thread,
+            # so the UI stays responsive from here on.
             self.input_manager.set_state(TutorState.ANALYZING)
-            
-            try:
-                self.ocr_data = extract_ocr_data(self.current_image)
-            except Exception as e:
-                logger.error("OCR extraction failed: %s", e)
-                # Graceful Failure: Empty screen / OCR failed
-                self._show_error("Couldn't precisely locate the text.\nPlease try capturing a different area.")
-                self.input_manager.set_state(TutorState.IDLE)
-                self.ui.lbl_status.setText("Ready.")
-                return
-                
             self.generate_lesson(question)
-                
+
         elif action == InputAction.TOGGLE_DEBUG:
             self.toggle_debug()
-            
+
+        elif action == InputAction.NEXT_STEP:
+            self.next_step()
+
+        elif action == InputAction.PREV_STEP:
+            self.prev_step()
+
         elif action == InputAction.CANCEL_LESSON:
             if self.demo_manager.is_running:
                 self.demo_manager.stop_demo()
+            self._clear_lesson()
             self.input_manager.set_state(TutorState.IDLE)
-            self.overlay.set_shapes([])
             self.ui.lbl_status.setText("Lesson cancelled. Ready.")
+
+    def _clear_lesson(self):
+        """Drops the current lesson and everything drawn for it."""
+        self.lesson_steps = []
+        self.current_step_index = 0
+        self.is_debug_mode = False
+        self.overlay.clear()
 
     def _overlay_screen_region(self):
         """Physical-pixel bounds of the screen the overlay covers.
@@ -288,15 +307,16 @@ class DesktopController:
 
     def generate_lesson(self, question):
         self.ui.btn_capture.setEnabled(False)
-        self.ui.lbl_status.setText("Asking Gemini for a lesson... please wait!")
-        
-        self.worker = LessonWorker(self.image_path, self.ocr_data, question)
-        self.worker.finished.connect(self._on_lesson_finished)
+        self.ui.lbl_status.setText("Reading the screen and asking Gemini...")
+
+        self.worker = LessonWorker(self.current_image, question)
+        self.worker.lesson_ready.connect(self._on_lesson_finished)
         self.worker.error.connect(self._on_lesson_error)
         self.worker.start()
 
-    def _on_lesson_finished(self, steps, answer):
+    def _on_lesson_finished(self, ocr_data, steps, answer):
         self.ui.btn_capture.setEnabled(True)
+        self.ocr_data = ocr_data
         if not steps:
             self.ui.lbl_status.setText("Gemini didn't return any steps.")
             self.input_manager.set_state(TutorState.IDLE)
@@ -335,7 +355,11 @@ class DesktopController:
         self._interrupt_demo()
         if not self.lesson_steps:
             return
-            
+
+        # Interrupting a demo above resets the state to IDLE, so re-assert
+        # TEACHING whenever a real lesson step is actually on screen.
+        self.input_manager.set_state(TutorState.TEACHING)
+
         step = self.lesson_steps[self.current_step_index]
         box = find_text(self.ocr_data, step["anchor"], step["context"])
         self._render_box(box, step)
@@ -393,11 +417,16 @@ class DesktopController:
 
     def _on_demo_started(self, image_path):
         self.is_debug_mode = False
+        # A running demo is a lesson as far as input routing is concerned.
+        # While this stayed IDLE, the CANCEL_LESSON guard dropped Esc and a
+        # demo could not be interrupted by the user at all.
+        self.input_manager.set_state(TutorState.TEACHING)
         self.overlay.set_background(image_path, show=True)
 
     def _on_demo_stopped(self):
         self.overlay.set_shapes([])
-        
+        self.input_manager.set_state(TutorState.IDLE)
+
         if self.is_recording_mode:
             self.ui.lbl_status.setText("Compiling MP4... Please wait.")
             self.recorder.stop_recording("demo_output.mp4")
@@ -427,8 +456,19 @@ class DesktopController:
 
     def toggle_debug(self):
         self._interrupt_demo()
+
+        # Debug mode draws every OCR word, so it needs a capture to draw from.
+        # Without this guard build_words(None) raised AttributeError inside a
+        # Qt slot, which is unrecoverable and left the state machine stuck.
+        if not self.is_debug_mode and not self.ocr_data:
+            logger.info("Debug overlay requested before any capture; ignoring.")
+            self.ui.lbl_status.setText(
+                "Nothing to debug yet — capture a screen first."
+            )
+            return
+
         self.is_debug_mode = not self.is_debug_mode
-        
+
         if self.is_debug_mode:
             self.overlay.set_background(self.image_path, show=True)
             words = build_words(self.ocr_data, min_confidence=0)

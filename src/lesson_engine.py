@@ -1,9 +1,12 @@
+import logging
 import re
 from pathlib import Path
 from PIL import Image
 from src.tutor import model
 from src.ocr_locator import find_text
 from src.highlighter import highlight_box
+
+logger = logging.getLogger(__name__)
 
 STEP_PATTERN = re.compile(
     r"STEP\s+(\d+)\s*(.*?)(?=\n\s*STEP\s+\d+\s*|\Z)",
@@ -276,16 +279,23 @@ EXPLANATION:
                         context
                     )
 
-                    if box:
+                    # self.image_path was never assigned by __init__, so this
+                    # branch used to raise AttributeError for every input type
+                    # and report it to the user as the lesson text. Guard on
+                    # str the same way build_step_highlights does: highlight_box
+                    # writes a sibling file, which needs a real path.
+                    if box and isinstance(self.image_or_path, str):
+                        source_path = Path(self.image_or_path)
                         highlighted_image = highlight_box(
-                            self.image_path,
+                            self.image_or_path,
                             box,
-                            Path(self.image_path).with_name(
-                                f"{Path(self.image_path).stem}_highlighted.png"
+                            source_path.with_name(
+                                f"{source_path.stem}_highlighted.png"
                             )
                         )
 
         except Exception as e:
+            logger.exception("Lesson generation failed")
             answer = f"Error: {str(e)}"
             highlighted_image = None
             lesson_steps = []
