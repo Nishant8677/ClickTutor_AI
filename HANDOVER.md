@@ -523,16 +523,16 @@ DemoManager.start_demo(demo_id)
 ### `ocr_data` (dict — from Tesseract)
 ```python
 {
-    "text":     ["int", "count", "=", "0", ...],   # raw OCR words
-    "left":     [45, 120, 180, 200, ...],           # x-coordinate (scaled)
-    "top":      [100, 100, 100, 100, ...],          # y-coordinate (scaled)
-    "width":    [30, 50, 15, 15, ...],              # word width (scaled)
-    "height":   [20, 20, 20, 20, ...],              # word height (scaled)
-    "conf":     [95.2, 88.1, 70.0, 91.5, ...],     # confidence 0-100
-    "block_num": [1, 1, 1, 1, ...],                 # Tesseract block grouping
-    "par_num":   [1, 1, 1, 1, ...],                 # paragraph grouping
-    "line_num":  [1, 1, 1, 1, ...],                 # line grouping
-    "_scale":    3                                   # ClickTutor-added: OCR upscale factor
+    "text": ["int", "count", "=", "0", ...],  # raw OCR words
+    "left": [45, 120, 180, 200, ...],  # x-coordinate (scaled)
+    "top": [100, 100, 100, 100, ...],  # y-coordinate (scaled)
+    "width": [30, 50, 15, 15, ...],  # word width (scaled)
+    "height": [20, 20, 20, 20, ...],  # word height (scaled)
+    "conf": [95.2, 88.1, 70.0, 91.5, ...],  # confidence 0-100
+    "block_num": [1, 1, 1, 1, ...],  # Tesseract block grouping
+    "par_num": [1, 1, 1, 1, ...],  # paragraph grouping
+    "line_num": [1, 1, 1, 1, ...],  # line grouping
+    "_scale": 3,  # ClickTutor-added: OCR upscale factor
 }
 ```
 > All coordinates are in **scaled** space (3x). Use `scale_box_to_image()` to convert back.
@@ -540,14 +540,14 @@ DemoManager.start_demo(demo_id)
 ### `LessonStep` (dict — from `parse_lesson_steps()`)
 ```python
 {
-    "step": 1,                          # step number (int)
-    "title": "Initializing the loop",   # short conceptual title
-    "anchor": "count",                  # exact visible text for OCR to find
-    "context": "int count = 0;",        # surrounding text (or None if anchor is unique)
-    "attention": "circle",              # circle | rectangle | underline | none
-    "emphasis": "high",                 # high | medium | low
+    "step": 1,  # step number (int)
+    "title": "Initializing the loop",  # short conceptual title
+    "anchor": "count",  # exact visible text for OCR to find
+    "context": "int count = 0;",  # surrounding text (or None if anchor is unique)
+    "attention": "circle",  # circle | rectangle | underline | none
+    "emphasis": "high",  # high | medium | low
     "explanation": "This variable...",  # the teaching content (markdown)
-    "highlighted_image": None           # path to highlighted image (Streamlit only)
+    "highlighted_image": None,  # path to highlighted image (Streamlit only)
 }
 ```
 
@@ -555,14 +555,14 @@ DemoManager.start_demo(demo_id)
 ```python
 @dataclass
 class AttentionShape:
-    x: int                  # top-left x (image-space coordinates)
-    y: int                  # top-left y
-    width: int              # bounding box width
-    height: int             # bounding box height
-    opacity: float = 0.0    # 0.0 → 1.0 (animated by AnimationEngine)
-    scale: float = 1.0      # unused currently, reserved for zoom effects
-    glow_strength: float    # 0.0 → 1.0 (pulse breathing)
-    animation_types: list   # [AnimationType.FADE, AnimationType.PULSE]
+    x: int  # top-left x (image-space coordinates)
+    y: int  # top-left y
+    width: int  # bounding box width
+    height: int  # bounding box height
+    opacity: float = 0.0  # 0.0 → 1.0 (animated by AnimationEngine)
+    scale: float = 1.0  # unused currently, reserved for zoom effects
+    glow_strength: float  # 0.0 → 1.0 (pulse breathing)
+    animation_types: list  # [AnimationType.FADE, AnimationType.PULSE]
 ```
 Subtypes: `RectangleShape`, `CircleShape`, `UnderlineShape`, `LabelShape`, `DebugBoxShape`
 

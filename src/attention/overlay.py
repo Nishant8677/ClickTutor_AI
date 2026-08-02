@@ -11,10 +11,10 @@ class TransparentOverlay(QWidget):
     def __init__(self, screen=None):
         super().__init__()
         self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.WindowTransparentForInput |
-            Qt.WindowType.Tool
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.WindowTransparentForInput
+            | Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -55,8 +55,10 @@ class TransparentOverlay(QWidget):
             return
         source_width, source_height = self._source_size
         self._mapper = CoordinateMapper.fit(
-            source_width, source_height,
-            max(1, self.width()), max(1, self.height()),
+            source_width,
+            source_height,
+            max(1, self.width()),
+            max(1, self.height()),
         )
 
     def resizeEvent(self, event):
@@ -74,6 +76,7 @@ class TransparentOverlay(QWidget):
                 self.bg_pixmap = QPixmap(image_or_path)
             else:
                 from PIL.ImageQt import ImageQt
+
                 qimage = ImageQt(image_or_path)
                 self.bg_pixmap = QPixmap.fromImage(qimage)
             # The background defines the coordinate space of anything drawn on

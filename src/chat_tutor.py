@@ -10,59 +10,35 @@ class TutorSession:
         self.mode = mode
 
         # Initial explanation of the screenshot
-        self.explanation = explain_image(
-            image_path,
-            mode=mode
-        )
+        self.explanation = explain_image(image_path, mode=mode)
 
         # Conversation history
         self.history = []
         self.lesson_steps = []
 
         # Cache OCR data once
-        self.ocr_data = extract_ocr_data(
-            self.image_path
-        )
+        self.ocr_data = extract_ocr_data(self.image_path)
 
         # Classify screenshot
-        self.screenshot_type = classify_screenshot(
-            self.image_path,
-            self.ocr_data
-        )
+        self.screenshot_type = classify_screenshot(self.image_path, self.ocr_data)
 
         # Initialize Lesson Engine
         self.lesson_engine = LessonEngine(
-            self.image_path,
-            self.ocr_data,
-            self.mode,
-            self.screenshot_type
+            self.image_path, self.ocr_data, self.mode, self.screenshot_type
         )
-
 
     def ask(self, question):
         # Keep only recent conversation
         recent_history = self.history[-10:]
 
         answer, highlighted_image, lesson_steps = self.lesson_engine.generate_lesson(
-            question,
-            recent_history,
-            self.explanation
+            question, recent_history, self.explanation
         )
 
         self.lesson_steps = lesson_steps
 
-        self.history.append(
-            {
-                "role": "user",
-                "content": question
-            }
-        )
+        self.history.append({"role": "user", "content": question})
 
-        self.history.append(
-            {
-                "role": "assistant",
-                "content": answer
-            }
-        )
+        self.history.append({"role": "assistant", "content": answer})
 
         return answer, highlighted_image, lesson_steps

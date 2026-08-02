@@ -51,21 +51,39 @@ class ScreenCapture:
             # try/finally: without it, any failure between here and the read
             # leaked a full screenshot of the user's desktop to /tmp forever.
             try:
-                script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "desktop", "capture.ps1"))
-                win_output_path = subprocess.check_output(
-                    ["wslpath", "-w", temp_path], timeout=SUBPROCESS_TIMEOUT_SECONDS
-                ).decode().strip()
-                win_script_path = subprocess.check_output(
-                    ["wslpath", "-w", script_path], timeout=SUBPROCESS_TIMEOUT_SECONDS
-                ).decode().strip()
+                script_path = os.path.abspath(
+                    os.path.join(os.path.dirname(__file__), "..", "desktop", "capture.ps1")
+                )
+                win_output_path = (
+                    subprocess.check_output(
+                        ["wslpath", "-w", temp_path], timeout=SUBPROCESS_TIMEOUT_SECONDS
+                    )
+                    .decode()
+                    .strip()
+                )
+                win_script_path = (
+                    subprocess.check_output(
+                        ["wslpath", "-w", script_path], timeout=SUBPROCESS_TIMEOUT_SECONDS
+                    )
+                    .decode()
+                    .strip()
+                )
 
                 logger.info("WSL detected. Running capture.ps1 fallback...")
                 # Timed out rather than left to block: a hung powershell.exe
                 # would otherwise wedge the calling thread indefinitely.
-                subprocess.run([
-                    "powershell.exe", "-ExecutionPolicy", "Bypass",
-                    "-File", win_script_path, win_output_path
-                ], check=True, timeout=POWERSHELL_TIMEOUT_SECONDS)
+                subprocess.run(
+                    [
+                        "powershell.exe",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        win_script_path,
+                        win_output_path,
+                    ],
+                    check=True,
+                    timeout=POWERSHELL_TIMEOUT_SECONDS,
+                )
 
                 img = Image.open(temp_path)
                 img.load()  # Force load into memory before closing/deleting file
@@ -81,8 +99,10 @@ class ScreenCapture:
                     monitor = region
                     logger.info(
                         "Native capture via mss of region %sx%s at (%s, %s)",
-                        monitor["width"], monitor["height"],
-                        monitor["left"], monitor["top"],
+                        monitor["width"],
+                        monitor["height"],
+                        monitor["left"],
+                        monitor["top"],
                     )
                 else:
                     if not 0 <= monitor_index < len(sct.monitors):
@@ -91,7 +111,9 @@ class ScreenCapture:
                             f"mss reports {len(sct.monitors)} entries"
                         )
                     monitor = sct.monitors[monitor_index]
-                    logger.info(f"Native capture via mss on monitor {monitor_index} ({monitor['width']}x{monitor['height']})")
+                    logger.info(
+                        f"Native capture via mss on monitor {monitor_index} ({monitor['width']}x{monitor['height']})"
+                    )
                 sct_img = sct.grab(monitor)
                 # Convert to PIL Image (mss returns BGRA)
                 img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")

@@ -79,9 +79,7 @@ class CoordinateMapper:
         invalid = [name for name, value in dimensions.items() if value <= 0]
         if invalid:
             detail = ", ".join(f"{name}={dimensions[name]}" for name in invalid)
-            raise ValueError(
-                f"CoordinateMapper dimensions must be positive; got {detail}"
-            )
+            raise ValueError(f"CoordinateMapper dimensions must be positive; got {detail}")
 
         scale = min(target_width / source_width, target_height / source_height)
         offset_x = (target_width - source_width * scale) / 2
@@ -142,8 +140,7 @@ class CoordinateMapper:
             width, height = box["width"], box["height"]
         except KeyError as exc:
             raise KeyError(
-                f"Bounding box is missing required key {exc}; "
-                f"got keys {sorted(box)}"
+                f"Bounding box is missing required key {exc}; got keys {sorted(box)}"
             ) from exc
 
         mapped_left, mapped_top = self.map_point(left, top)

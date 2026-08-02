@@ -85,16 +85,17 @@ def generate_content(parts, timeout=REQUEST_TIMEOUT_SECONDS, max_attempts=MAX_AT
 
     for attempt in range(1, max_attempts + 1):
         try:
-            return model.generate_content(
-                parts, request_options={"timeout": timeout}
-            )
+            return model.generate_content(parts, request_options={"timeout": timeout})
         except RETRYABLE_ERRORS as exc:
             last_error = exc
             if attempt == max_attempts:
                 break
             logger.warning(
                 "Gemini call failed (attempt %s/%s): %s. Retrying in %.1fs.",
-                attempt, max_attempts, exc, backoff,
+                attempt,
+                max_attempts,
+                exc,
+                backoff,
             )
             time.sleep(backoff)
             backoff *= 2
@@ -113,20 +114,14 @@ def response_text(response):
     Raises:
         ModelResponseError: If the response carries no usable text.
     """
-    block_reason = getattr(
-        getattr(response, "prompt_feedback", None), "block_reason", None
-    )
+    block_reason = getattr(getattr(response, "prompt_feedback", None), "block_reason", None)
     if block_reason:
-        raise ModelResponseError(
-            f"The request was blocked by a safety filter ({block_reason})."
-        )
+        raise ModelResponseError(f"The request was blocked by a safety filter ({block_reason}).")
 
     try:
         text = response.text
     except Exception as exc:
-        raise ModelResponseError(
-            f"The model returned no usable content ({exc})."
-        ) from exc
+        raise ModelResponseError(f"The model returned no usable content ({exc}).") from exc
 
     if not text or not text.strip():
         raise ModelResponseError("The model returned an empty response.")
@@ -138,7 +133,6 @@ def explain_image(image_path, mode="student"):
     image = Image.open(image_path)
 
     prompts = {
-
         "student": """
         You are ClickTutor.
 
@@ -159,7 +153,6 @@ def explain_image(image_path, mode="student"):
         5. Final Answer
         6. Common Mistakes
         """,
-
         "exam": """
         You are ClickTutor.
 
@@ -178,7 +171,6 @@ def explain_image(image_path, mode="student"):
         4. Final Answer
         5. Exam Tip
         """,
-
         "dsa": """
         You are ClickTutor.
 
@@ -200,7 +192,7 @@ def explain_image(image_path, mode="student"):
         5. Complexity Analysis
         6. Edge Cases
         7. Interview Tips
-        """
+        """,
     }
 
     if mode not in prompts:

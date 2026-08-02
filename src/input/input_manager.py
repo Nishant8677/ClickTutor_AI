@@ -11,9 +11,7 @@ logger = logging.getLogger(__name__)
 # Starting a new capture is allowed while a lesson is on screen: a second
 # hotkey press should replace the current lesson rather than be swallowed.
 # CAPTURING and ANALYZING are the only genuinely busy states.
-_CAPTURE_READY_STATES = frozenset(
-    {TutorState.IDLE, TutorState.TEACHING, TutorState.FINISHED}
-)
+_CAPTURE_READY_STATES = frozenset({TutorState.IDLE, TutorState.TEACHING, TutorState.FINISHED})
 
 # Step navigation only means anything while a lesson is displayed.
 _NAVIGABLE_STATES = frozenset({TutorState.TEACHING, TutorState.FINISHED})
@@ -40,7 +38,8 @@ class InputManager(QObject):
         if self.current_state != new_state:
             logger.info(
                 "TutorState transition: %s -> %s",
-                self.current_state.name, new_state.name,
+                self.current_state.name,
+                new_state.name,
             )
             self.current_state = new_state
 
@@ -50,7 +49,8 @@ class InputManager(QObject):
     def handle_action(self, action: InputAction) -> None:
         logger.info(
             "InputManager received action: %s (Current State: %s)",
-            action.name, self.current_state.name,
+            action.name,
+            self.current_state.name,
         )
 
         if action == InputAction.CAPTURE_SCREEN:
@@ -72,7 +72,8 @@ class InputManager(QObject):
             else:
                 logger.debug(
                     "Ignored %s: no lesson on screen (%s)",
-                    action.name, self.current_state.name,
+                    action.name,
+                    self.current_state.name,
                 )
 
         elif action == InputAction.TOGGLE_DEBUG:

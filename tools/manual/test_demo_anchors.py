@@ -17,6 +17,6 @@ for i, step in enumerate(steps):
     context = step["context"]
     box = find_text(ocr_data, anchor, context)
     if box:
-        print(f"Step {i+1} [{anchor}]: FOUND at {box}")
+        print(f"Step {i + 1} [{anchor}]: FOUND at {box}")
     else:
-        print(f"Step {i+1} [{anchor}]: NOT FOUND!")
+        print(f"Step {i + 1} [{anchor}]: NOT FOUND!")

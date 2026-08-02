@@ -31,11 +31,7 @@ def image_suffix(filename):
 # PAGE CONFIG
 # ==================================
 
-st.set_page_config(
-    page_title="ClickTutor",
-    page_icon="🎓",
-    layout="wide"
-)
+st.set_page_config(page_title="ClickTutor", page_icon="🎓", layout="wide")
 
 st.title("🎓 ClickTutor")
 st.caption("Your AI-powered learning companion")
@@ -45,34 +41,18 @@ st.caption("Your AI-powered learning companion")
 # ==================================
 
 with st.sidebar:
-
     st.header("⚙️ Settings")
 
-    mode = st.selectbox(
-        "Tutor Mode",
-        [
-            "student",
-            "dsa",
-            "exam"
-        ]
-    )
+    mode = st.selectbox("Tutor Mode", ["student", "dsa", "exam"])
 
-    st.success(
-        f"Current Mode: {mode.upper()}"
-    )
+    st.success(f"Current Mode: {mode.upper()}")
 
     if "session" in st.session_state and hasattr(st.session_state.session, "screenshot_type"):
-        st.info(
-            f"📸 Content: **{st.session_state.session.screenshot_type.upper()}**"
-        )
+        st.info(f"📸 Content: **{st.session_state.session.screenshot_type.upper()}**")
 
-    uploaded_file = st.file_uploader(
-        "Upload Screenshot",
-        type=["png", "jpg", "jpeg"]
-    )
+    uploaded_file = st.file_uploader("Upload Screenshot", type=["png", "jpg", "jpeg"])
 
     if st.button("🗑 New Session"):
-
         st.session_state.clear()
         st.rerun()
 
@@ -81,7 +61,6 @@ with st.sidebar:
 # ==================================
 
 if uploaded_file:
-
     session_dir = get_session_dir()
     current_image = uploaded_file.getvalue()
 
@@ -98,23 +77,14 @@ if uploaded_file:
         st.session_state.last_uploaded_image = current_image
 
         for key in [
-
             "session",
-
             "messages",
-
             "highlighted_image",
-
             "lesson_steps",
-
             "lesson_index",
-
-            "selected_image"
-
+            "selected_image",
         ]:
-
             if key in st.session_state:
-
                 del st.session_state[key]
 
         upload_path = session_dir / f"uploaded{image_suffix(uploaded_file.name)}"
@@ -133,7 +103,6 @@ if uploaded_file:
     # ==================================
 
     if "selected_image" not in st.session_state:
-
         st.session_state.selected_image = image_path
 
     col1, col2 = st.columns([1, 2])
@@ -143,101 +112,51 @@ if uploaded_file:
     # ==================================
 
     with col1:
-
-        st.image(
-            image_path,
-            caption="Uploaded Screenshot",
-            width="stretch"
-        )
+        st.image(image_path, caption="Uploaded Screenshot", width="stretch")
 
         st.subheader("🎯 Select Region Center")
 
         x = st.number_input(
-            "X Coordinate",
-            min_value=0,
-            max_value=image.width,
-            value=image.width // 2
+            "X Coordinate", min_value=0, max_value=image.width, value=image.width // 2
         )
 
         y = st.number_input(
-            "Y Coordinate",
-            min_value=0,
-            max_value=image.height,
-            value=image.height // 2
+            "Y Coordinate", min_value=0, max_value=image.height, value=image.height // 2
         )
 
         if st.button("Preview Crop"):
-
             crop_size = 300
 
-            left = max(
-                0,
-                x - crop_size // 2
-            )
+            left = max(0, x - crop_size // 2)
 
-            top = max(
-                0,
-                y - crop_size // 2
-            )
+            top = max(0, y - crop_size // 2)
 
-            right = min(
-                image.width,
-                x + crop_size // 2
-            )
+            right = min(image.width, x + crop_size // 2)
 
-            bottom = min(
-                image.height,
-                y + crop_size // 2
-            )
+            bottom = min(image.height, y + crop_size // 2)
 
-            cropped = image.crop(
-                (
-                    left,
-                    top,
-                    right,
-                    bottom
-                )
-            )
+            cropped = image.crop((left, top, right, bottom))
 
             selected_path = session_dir / "selected_region.png"
 
-            cropped.save(
-                selected_path
-            )
+            cropped.save(selected_path)
 
-            st.session_state.selected_image = str(
-                selected_path
-            )
+            st.session_state.selected_image = str(selected_path)
 
-            st.image(
-                cropped,
-                caption="Selected Region"
-            )
+            st.image(cropped, caption="Selected Region")
 
-        st.caption(
-            f"Current Image: {Path(st.session_state.selected_image).name}"
-        )
+        st.caption(f"Current Image: {Path(st.session_state.selected_image).name}")
 
     # ==================================
     # EXPLANATION
     # ==================================
 
     with col2:
-
         if st.button("📚 Explain"):
+            image_path = st.session_state.selected_image
 
-            image_path = (
-                st.session_state.selected_image
-            )
-
-            with st.spinner(
-                "📚 Analyzing screenshot..."
-            ):
-
-                session = TutorSession(
-                    image_path,
-                    mode=mode
-                )
+            with st.spinner("📚 Analyzing screenshot..."):
+                session = TutorSession(image_path, mode=mode)
 
             st.session_state.session = session
             st.session_state.messages = []
@@ -248,23 +167,17 @@ if uploaded_file:
                     del st.session_state[key]
 
         if "session" in st.session_state:
-
             st.subheader("📖 Explanation")
 
             with st.container(border=True):
-
-                st.markdown(
-                    st.session_state.session.explanation
-                )
+                st.markdown(st.session_state.session.explanation)
 
     # ==================================
     # CHAT SECTION
     # ==================================
 
     if "session" in st.session_state:
-
         if "lesson_steps" in st.session_state and st.session_state.lesson_steps:
-
             steps = st.session_state.lesson_steps
             index = st.session_state.get("lesson_index", 0)
             index = max(0, min(index, len(steps) - 1))
@@ -274,23 +187,18 @@ if uploaded_file:
             st.subheader("🎯 Guided Lesson")
 
             st.image(
-                step.get("highlighted_image")
-                or st.session_state.session.image_path,
-                width="stretch"
+                step.get("highlighted_image") or st.session_state.session.image_path,
+                width="stretch",
             )
 
             with st.container(border=True):
-                st.caption(
-                    f"Step {index + 1} of {len(steps)}"
-                )
+                st.caption(f"Step {index + 1} of {len(steps)}")
 
                 st.markdown(f"### {step.get('title', f'Step {index + 1}')}")
 
                 anchor = step.get("anchor") or step.get("visible_text")
                 if anchor and anchor.upper() != "NONE":
-                    st.markdown(
-                        f"🎯 **Anchor Focus:** `{anchor}`"
-                    )
+                    st.markdown(f"🎯 **Anchor Focus:** `{anchor}`")
 
                 attention = step.get("attention", "none")
                 emphasis = step.get("emphasis", "low")
@@ -300,13 +208,13 @@ if uploaded_file:
                     "rectangle": "🟥 Rectangle",
                     "arrow": "➡️ Arrow",
                     "underline": "➖ Underline",
-                    "none": "⚪ None"
+                    "none": "⚪ None",
                 }.get(attention, f"👁️ {attention.capitalize()}")
 
                 emphasis_emoji = {
                     "high": "🔴 High Priority",
                     "medium": "🟡 Medium Priority",
-                    "low": "🟢 Low Priority"
+                    "low": "🟢 Low Priority",
                 }.get(emphasis, f"⚡ {emphasis.capitalize()}")
 
                 st.markdown(
@@ -315,115 +223,62 @@ if uploaded_file:
 
                 st.divider()
 
-                st.markdown(
-                    step.get("explanation", "")
-                )
+                st.markdown(step.get("explanation", ""))
 
                 prev_col, count_col, next_col = st.columns([1, 1, 1])
 
                 with prev_col:
-                    if st.button(
-                        "◀ Previous",
-                        disabled=index == 0
-                    ):
+                    if st.button("◀ Previous", disabled=index == 0):
                         st.session_state.lesson_index = index - 1
                         st.rerun()
 
                 with count_col:
                     st.markdown(
                         f"<div style='text-align:center'>{index + 1} / {len(steps)}</div>",
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
 
                 with next_col:
-                    if st.button(
-                        "Next ▶",
-                        disabled=index == len(steps) - 1
-                    ):
+                    if st.button("Next ▶", disabled=index == len(steps) - 1):
                         st.session_state.lesson_index = index + 1
                         st.rerun()
 
         elif "highlighted_image" in st.session_state:
+            st.subheader("🎯 ClickTutor Focus Area")
 
-            st.subheader(
-                "🎯 ClickTutor Focus Area"
-            )
-
-            st.image(
-                st.session_state.highlighted_image,
-                width="stretch"
-            )
+            st.image(st.session_state.highlighted_image, width="stretch")
 
         st.divider()
 
         st.subheader("💬 Chat with ClickTutor")
 
         for msg in st.session_state.messages:
-
             if msg["role"] == "user":
-
-                with st.chat_message(
-                    "user",
-                    avatar="🧑"
-                ):
-
-                    st.markdown(
-                        msg["content"]
-                    )
+                with st.chat_message("user", avatar="🧑"):
+                    st.markdown(msg["content"])
 
             else:
+                with st.chat_message("assistant", avatar="🎓"):
+                    st.markdown(msg["content"])
 
-                with st.chat_message(
-                    "assistant",
-                    avatar="🎓"
-                ):
-
-                    st.markdown(
-                        msg["content"]
-                    )
-
-        prompt = st.chat_input(
-            "Ask a follow-up question..."
-        )
+        prompt = st.chat_input("Ask a follow-up question...")
 
         if prompt:
+            st.session_state.messages.append({"role": "user", "content": prompt})
 
-            st.session_state.messages.append(
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            )
-
-            with st.spinner(
-                "🎓 ClickTutor is thinking..."
-            ):
-
-                answer, highlighted, lesson_steps = (
-                    st.session_state.session.ask(
-                        prompt
-                    )
-                )
+            with st.spinner("🎓 ClickTutor is thinking..."):
+                answer, highlighted, lesson_steps = st.session_state.session.ask(prompt)
 
                 if lesson_steps:
                     st.session_state.lesson_steps = lesson_steps
                     st.session_state.lesson_index = 0
 
                 if highlighted:
-
                     st.session_state.highlighted_image = highlighted
 
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": answer
-                }
-            )
+            st.session_state.messages.append({"role": "assistant", "content": answer})
 
             st.rerun()
 
 else:
-
-    st.info(
-        "👈 Upload a screenshot from the sidebar to begin."
-    )
+    st.info("👈 Upload a screenshot from the sidebar to begin.")

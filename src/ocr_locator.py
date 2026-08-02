@@ -29,11 +29,7 @@ Word = dict[str, Any]
 
 def normalize(text: str) -> str:
     text = text.lower().strip()
-    text = re.sub(
-        r"[^a-z0-9]+",
-        "",
-        text
-    )
+    text = re.sub(r"[^a-z0-9]+", "", text)
     return text
 
 
@@ -80,8 +76,7 @@ def extract_ocr_data(image_or_path: ImageSource) -> OcrData:
         image = image_or_path.copy()
     else:
         raise TypeError(
-            f"extract_ocr_data expects a path or a PIL Image, "
-            f"got {type(image_or_path).__name__}"
+            f"extract_ocr_data expects a path or a PIL Image, got {type(image_or_path).__name__}"
         )
 
     # Convert to grayscale
@@ -90,14 +85,9 @@ def extract_ocr_data(image_or_path: ImageSource) -> OcrData:
     # Upscale to improve OCR quality. Boxes must be scaled back before drawing.
     width, height = image.size
 
-    image = image.resize(
-        (width * OCR_SCALE, height * OCR_SCALE)
-    )
+    image = image.resize((width * OCR_SCALE, height * OCR_SCALE))
 
-    ocr_data = pytesseract.image_to_data(
-        image,
-        output_type=pytesseract.Output.DICT
-    )
+    ocr_data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
 
     ocr_data["_scale"] = OCR_SCALE
 
@@ -113,12 +103,7 @@ def scale_box_to_image(box: Box | None, scale: int) -> Box | None:
     right = round((box["left"] + box["width"]) / scale)
     bottom = round((box["top"] + box["height"]) / scale)
 
-    return {
-        "left": left,
-        "top": top,
-        "width": max(1, right - left),
-        "height": bottom - top
-    }
+    return {"left": left, "top": top, "width": max(1, right - left), "height": bottom - top}
 
 
 def make_box(words: list[Word], scale: int) -> Box | None:
@@ -128,13 +113,7 @@ def make_box(words: list[Word], scale: int) -> Box | None:
     bottom = max(w["top"] + w["height"] for w in words)
 
     return scale_box_to_image(
-        {
-            "left": left,
-            "top": top,
-            "width": right - left,
-            "height": bottom - top
-        },
-        scale
+        {"left": left, "top": top, "width": right - left, "height": bottom - top}, scale
     )
 
 
@@ -164,7 +143,7 @@ def build_words(ocr_data: OcrData, min_confidence: float = MIN_CONFIDENCE) -> li
                 "top": ocr_data["top"][i],
                 "width": ocr_data["width"][i],
                 "height": ocr_data["height"][i],
-                "line_id": (block_nums[i], par_nums[i], line_nums[i])
+                "line_id": (block_nums[i], par_nums[i], line_nums[i]),
             }
         )
 
@@ -178,7 +157,7 @@ def get_line_texts(words: list[Word]) -> dict[tuple, str]:
         if lid not in lines:
             lines[lid] = []
         lines[lid].append(w)
-    
+
     line_texts = {}
     for lid, line_words in lines.items():
         sorted_words = sorted(line_words, key=lambda x: x["left"])
@@ -208,9 +187,7 @@ def find_text(
         return None
 
     target_words = [
-        normalize(word)
-        for word in re.split(r"[\s\-]+", target_text)
-        if normalize(word)
+        normalize(word) for word in re.split(r"[\s\-]+", target_text) if normalize(word)
     ]
 
     if not target_words or target_words == ["none"]:
@@ -238,7 +215,7 @@ def find_text(
             if score > best_score:
                 best_score = score
                 best_cand = cand
-        
+
         return make_box(best_cand, scale)
 
     # =====================================
@@ -292,8 +269,8 @@ def find_text(
                     match = False
                     break
             if match:
-                candidates.append(words[i:i+n])
-        
+                candidates.append(words[i : i + n])
+
         if candidates:
             return select_best(candidates)
 
@@ -303,7 +280,7 @@ def find_text(
         for w in words:
             if w["text"] == target:
                 candidates.append([w])
-    
+
     if candidates:
         return select_best(candidates)
 
@@ -314,10 +291,10 @@ def find_text(
     if n > 1:
         target_phrase = "".join(target_words)
         for i in range(len(words) - n + 1):
-            candidate = "".join(w["text"] for w in words[i:i+n])
+            candidate = "".join(w["text"] for w in words[i : i + n])
             if similarity(candidate, target_phrase) >= FUZZY_MATCH_THRESHOLD:
-                candidates.append(words[i:i+n])
-        
+                candidates.append(words[i : i + n])
+
         if candidates:
             return select_best(candidates)
 
@@ -335,7 +312,7 @@ def find_text(
             score = similarity(word, target)
             if score >= FUZZY_MATCH_THRESHOLD:
                 best_matches.append((score, [w]))
-    
+
     if best_matches:
         # Sort by similarity score descending
         best_matches.sort(key=lambda x: x[0], reverse=True)

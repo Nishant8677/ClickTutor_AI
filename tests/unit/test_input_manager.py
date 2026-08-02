@@ -34,9 +34,7 @@ class TestCaptureGuard:
 
         assert manager.dispatched == [InputAction.CAPTURE_SCREEN]
 
-    @pytest.mark.parametrize(
-        "state", [TutorState.CAPTURING, TutorState.ANALYZING]
-    )
+    @pytest.mark.parametrize("state", [TutorState.CAPTURING, TutorState.ANALYZING])
     def test_capture_is_blocked_while_genuinely_busy(self, manager, state):
         manager.set_state(state)
 
@@ -55,9 +53,7 @@ class TestCancelGuard:
         "state",
         [TutorState.CAPTURING, TutorState.ANALYZING, TutorState.TEACHING],
     )
-    def test_cancel_reaches_listeners_whenever_something_is_running(
-        self, manager, state
-    ):
+    def test_cancel_reaches_listeners_whenever_something_is_running(self, manager, state):
         # A demo sets TEACHING; while it incorrectly stayed IDLE, Esc was
         # dropped here and demos could not be interrupted at all.
         manager.set_state(state)
@@ -68,9 +64,7 @@ class TestCancelGuard:
 
 
 class TestNavigationGuard:
-    @pytest.mark.parametrize(
-        "action", [InputAction.NEXT_STEP, InputAction.PREV_STEP]
-    )
+    @pytest.mark.parametrize("action", [InputAction.NEXT_STEP, InputAction.PREV_STEP])
     def test_navigation_requires_a_lesson_on_screen(self, manager, action):
         manager.set_state(TutorState.TEACHING)
 
@@ -78,9 +72,7 @@ class TestNavigationGuard:
 
         assert manager.dispatched == [action]
 
-    @pytest.mark.parametrize(
-        "action", [InputAction.NEXT_STEP, InputAction.PREV_STEP]
-    )
+    @pytest.mark.parametrize("action", [InputAction.NEXT_STEP, InputAction.PREV_STEP])
     def test_navigation_is_ignored_while_idle(self, manager, action):
         manager.handle_action(action)
 

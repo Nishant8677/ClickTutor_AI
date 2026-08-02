@@ -7,7 +7,12 @@ VALID_ATTENTIONS = frozenset({"circle", "rectangle", "arrow", "underline", "none
 VALID_EMPHASES = frozenset({"high", "medium", "low"})
 
 REQUIRED_STEP_KEYS = (
-    "step", "title", "anchor", "attention", "emphasis", "explanation",
+    "step",
+    "title",
+    "anchor",
+    "attention",
+    "emphasis",
+    "explanation",
 )
 
 
@@ -42,12 +47,16 @@ def validate_lesson_steps(steps: Any) -> tuple[bool, list[str]]:
         # Validate attention type
         attention = step.get("attention")
         if attention and attention not in valid_attentions:
-            errors.append(f"{prefix} has invalid attention: '{attention}'. Must be one of {valid_attentions}.")
+            errors.append(
+                f"{prefix} has invalid attention: '{attention}'. Must be one of {valid_attentions}."
+            )
 
         # Validate emphasis type
         emphasis = step.get("emphasis")
         if emphasis and emphasis not in valid_emphases:
-            errors.append(f"{prefix} has invalid emphasis: '{emphasis}'. Must be one of {valid_emphases}.")
+            errors.append(
+                f"{prefix} has invalid emphasis: '{emphasis}'. Must be one of {valid_emphases}."
+            )
 
         # Validate anchor exists (even if NONE)
         anchor = step.get("anchor")

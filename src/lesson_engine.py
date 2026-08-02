@@ -16,35 +16,25 @@ from src.tutor import generate_content, response_text
 logger = logging.getLogger(__name__)
 
 STEP_PATTERN = re.compile(
-    r"STEP\s+(\d+)\s*(.*?)(?=\n\s*STEP\s+\d+\s*|\Z)",
-    re.IGNORECASE | re.DOTALL
+    r"STEP\s+(\d+)\s*(.*?)(?=\n\s*STEP\s+\d+\s*|\Z)", re.IGNORECASE | re.DOTALL
 )
 
+
 def get_visible_text(response):
-    match = re.search(
-        r"ANCHOR:\s*(.+)",
-        response,
-        re.IGNORECASE
-    )
+    match = re.search(r"ANCHOR:\s*(.+)", response, re.IGNORECASE)
     if not match:
-        match = re.search(
-            r"VISIBLE TEXT:\s*(.+)",
-            response,
-            re.IGNORECASE
-        )
+        match = re.search(r"VISIBLE TEXT:\s*(.+)", response, re.IGNORECASE)
     if match:
         return match.group(1).strip()
     return None
 
+
 def get_context_text(response):
-    match = re.search(
-        r"CONTEXT:\s*(.+)",
-        response,
-        re.IGNORECASE
-    )
+    match = re.search(r"CONTEXT:\s*(.+)", response, re.IGNORECASE)
     if match:
         return match.group(1).strip()
     return None
+
 
 def extract_section(text, label, next_labels=None):
     labels = next_labels or []
@@ -55,16 +45,13 @@ def extract_section(text, label, next_labels=None):
     else:
         pattern = rf"{re.escape(label)}:\s*(.*)"
 
-    match = re.search(
-        pattern,
-        text,
-        re.IGNORECASE | re.DOTALL
-    )
+    match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
 
     if match:
         return match.group(1).strip()
 
     return ""
+
 
 def _coerce(value, allowed, default, field, step_number):
     """Maps a model-supplied enum field onto the vocabulary the renderer knows.
@@ -79,7 +66,10 @@ def _coerce(value, allowed, default, field, step_number):
     if normalized:
         logger.warning(
             "Step %s: unrecognised %s %r; falling back to %r.",
-            step_number, field, value, default,
+            step_number,
+            field,
+            value,
+            default,
         )
     return default
 
@@ -92,11 +82,17 @@ def parse_lesson_steps(response):
         step_number = int(match.group(1))
         block = match.group(2).strip()
 
-        title = extract_section(block, "TITLE", ["ANCHOR", "CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"])
-        anchor = extract_section(block, "ANCHOR", ["CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"])
+        title = extract_section(
+            block, "TITLE", ["ANCHOR", "CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"]
+        )
+        anchor = extract_section(
+            block, "ANCHOR", ["CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"]
+        )
         if not anchor:
-            anchor = extract_section(block, "VISIBLE TEXT", ["CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"])
-        
+            anchor = extract_section(
+                block, "VISIBLE TEXT", ["CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"]
+            )
+
         context = extract_section(block, "CONTEXT", ["ATTENTION", "EMPHASIS", "EXPLANATION"])
         attention = extract_section(block, "ATTENTION", ["EMPHASIS", "EXPLANATION"])
         emphasis = extract_section(block, "EMPHASIS", ["EXPLANATION"])
@@ -110,7 +106,8 @@ def parse_lesson_steps(response):
             dropped += 1
             logger.warning(
                 "Dropping step %s: no EXPLANATION section found in block %r",
-                step_number, block[:120],
+                step_number,
+                block[:120],
             )
             continue
 
@@ -120,24 +117,22 @@ def parse_lesson_steps(response):
                 "title": title or f"Step {step_number}",
                 "anchor": anchor or "NONE",
                 "context": None if not context or context.upper() == "NONE" else context,
-                "attention": _coerce(
-                    attention, VALID_ATTENTIONS, "none", "attention", step_number
-                ),
-                "emphasis": _coerce(
-                    emphasis, VALID_EMPHASES, "low", "emphasis", step_number
-                ),
+                "attention": _coerce(attention, VALID_ATTENTIONS, "none", "attention", step_number),
+                "emphasis": _coerce(emphasis, VALID_EMPHASES, "low", "emphasis", step_number),
                 "explanation": explanation,
-                "highlighted_image": None
+                "highlighted_image": None,
             }
         )
 
     if dropped:
         logger.warning(
             "Parsed %s lesson step(s); dropped %s malformed block(s).",
-            len(steps), dropped,
+            len(steps),
+            dropped,
         )
 
     return steps
+
 
 def format_lesson_answer(steps):
     if not steps:
@@ -154,6 +149,7 @@ def format_lesson_answer(steps):
         )
 
     return "\n\n".join(parts)
+
 
 class LessonEngine:
     def __init__(self, image_or_path, ocr_data, mode="student", screenshot_type=None):
@@ -263,20 +259,14 @@ EXPLANATION:
             highlighted_image = None
 
             if anchor and anchor.strip().upper() != "NONE":
-                box = find_text(
-                    self.ocr_data,
-                    anchor,
-                    context
-                )
+                box = find_text(self.ocr_data, anchor, context)
 
                 if box and isinstance(self.image_or_path, str):
                     image_path = Path(self.image_or_path)
                     highlighted_image = highlight_box(
                         self.image_or_path,
                         box,
-                        image_path.with_name(
-                            f"{image_path.stem}_step_{index}_highlighted.png"
-                        )
+                        image_path.with_name(f"{image_path.stem}_step_{index}_highlighted.png"),
                     )
 
             highlighted_step = dict(step)
@@ -314,7 +304,8 @@ EXPLANATION:
             if not is_valid:
                 logger.warning(
                     "Lesson failed validation with %s issue(s): %s",
-                    len(validation_errors), "; ".join(validation_errors[:5]),
+                    len(validation_errors),
+                    "; ".join(validation_errors[:5]),
                 )
 
             lesson_steps = self.build_step_highlights(parsed_steps)
@@ -327,11 +318,7 @@ EXPLANATION:
                 context = get_context_text(answer)
 
                 if anchor and anchor.strip().upper() != "NONE":
-                    box = find_text(
-                        self.ocr_data,
-                        anchor,
-                        context
-                    )
+                    box = find_text(self.ocr_data, anchor, context)
 
                     # self.image_path was never assigned by __init__, so this
                     # branch used to raise AttributeError for every input type
@@ -343,9 +330,7 @@ EXPLANATION:
                         highlighted_image = highlight_box(
                             self.image_or_path,
                             box,
-                            source_path.with_name(
-                                f"{source_path.stem}_highlighted.png"
-                            )
+                            source_path.with_name(f"{source_path.stem}_highlighted.png"),
                         )
 
         except Exception as e:

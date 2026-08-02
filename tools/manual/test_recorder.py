@@ -19,6 +19,6 @@ recorder.start_recording()
 # Manually trigger a few frames
 for _ in range(5):
     recorder._capture_frame()
-    
+
 recorder.stop_recording("test_output.mp4")
 print("Test completed.")

@@ -17,16 +17,37 @@ logger = logging.getLogger(__name__)
 # therefore be alphanumeric too: "console.log" could never match and is
 # spelled "consolelog" here for that reason.
 CODE_KEYWORDS = {
-    "def", "class", "import", "struct", "fn", "namespace",
-    "public", "private", "return", "include", "iostream",
-    "println", "consolelog", "nullptr", "sizeof", "lambda"
+    "def",
+    "class",
+    "import",
+    "struct",
+    "fn",
+    "namespace",
+    "public",
+    "private",
+    "return",
+    "include",
+    "iostream",
+    "println",
+    "consolelog",
+    "nullptr",
+    "sizeof",
+    "lambda",
 }
 
 # Ordered, not a set: the containment scan below must be deterministic when a
 # response mentions more than one category.
 VALID_CATEGORIES = (
-    "code", "math", "diagram", "dashboard", "slides", "pdf", "website", "other",
+    "code",
+    "math",
+    "diagram",
+    "dashboard",
+    "slides",
+    "pdf",
+    "website",
+    "other",
 )
+
 
 def classify_heuristically(ocr_data):
     """
@@ -46,6 +67,7 @@ def classify_heuristically(ocr_data):
         return "code"
 
     return None
+
 
 def classify_with_gemini(image_path):
     """
@@ -92,6 +114,7 @@ def classify_with_gemini(image_path):
     logger.warning("Unrecognised classification %r; treating as 'other'.", classification)
     return "other"
 
+
 def classify_screenshot(image_path, ocr_data):
     """
     Main entry point: tries heuristics first, falls back to Gemini.
@@ -99,6 +122,6 @@ def classify_screenshot(image_path, ocr_data):
     heuristic_res = classify_heuristically(ocr_data)
     if heuristic_res:
         return f"{heuristic_res} (via Heuristics)"
-    
+
     gemini_res = classify_with_gemini(image_path)
     return gemini_res
