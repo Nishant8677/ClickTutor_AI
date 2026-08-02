@@ -1,5 +1,7 @@
-# Virtual environment
+# Virtual environments. venv/ is the WSL one used for tests and tooling;
+# venv-win/ is the native Windows one the desktop overlay must be run from.
 venv/
+venv-win/
 
 # Environment variables
 .env

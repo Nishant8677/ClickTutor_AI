@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from src.attention.overlay import TransparentOverlay
+from src.attention.screens import physical_region
 from src.attention.shapes import (
     CircleShape,
     DebugBoxShape,
@@ -315,23 +316,8 @@ class DesktopController:
         are placed against a region the user is not looking at. Returns None on
         WSL, where the PowerShell fallback always grabs the Windows primary
         screen and cannot honour a region anyway.
-
-        Approximate on mixed-DPI multi-monitor setups: Qt normalises logical
-        coordinates across screens, so the origin is not a uniform multiple of
-        the device pixel ratio there.
         """
-        screen = getattr(self.overlay, "screen_target", None)
-        if screen is None:
-            return None
-
-        geometry = screen.geometry()
-        ratio = screen.devicePixelRatio()
-        return {
-            "left": round(geometry.x() * ratio),
-            "top": round(geometry.y() * ratio),
-            "width": round(geometry.width() * ratio),
-            "height": round(geometry.height() * ratio),
-        }
+        return physical_region(getattr(self.overlay, "screen_target", None))
 
     def _show_error(self, message):
         msg = QMessageBox(self.ui)
