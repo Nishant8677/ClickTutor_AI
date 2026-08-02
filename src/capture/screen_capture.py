@@ -11,12 +11,27 @@ class ScreenCapture:
     def __init__(self):
         pass
 
-    def _is_wsl(self):
+    def _is_wsl(self) -> bool:
+        # os.uname() does not exist on Windows, so it must not be reached
+        # before the platform check or the native path dies with AttributeError.
+        if not hasattr(os, "uname"):
+            return False
         return "WSL" in os.uname().release or os.path.exists("/run/WSL")
 
-    def capture(self, monitor_index=1) -> Image.Image:
-        """
-        Captures the screen and returns a PIL Image in memory.
+    def capture(self, monitor_index: int = 1, region=None) -> Image.Image:
+        """Captures the screen and returns a PIL Image in memory.
+
+        Args:
+            monitor_index: Index into mss's monitor list, used when no explicit
+                region is given. Ignored on the WSL fallback path.
+            region: Optional ``{"left", "top", "width", "height"}`` in physical
+                desktop pixels. Pass the bounds of the screen the overlay covers
+                so that capture and overlay describe the same area. Ignored on
+                the WSL fallback path, which always returns the Windows primary
+                screen.
+
+        Returns:
+            An RGB PIL Image.
         """
         if self._is_wsl():
             # In WSL, mss cannot capture the Windows screen due to X11 boundaries.
@@ -42,8 +57,21 @@ class ScreenCapture:
             return img
         else:
             with mss.mss() as sct:
-                monitor = sct.monitors[monitor_index]
-                logger.info(f"Native capture via mss on monitor {monitor_index} ({monitor['width']}x{monitor['height']})")
+                if region:
+                    monitor = region
+                    logger.info(
+                        "Native capture via mss of region %sx%s at (%s, %s)",
+                        monitor["width"], monitor["height"],
+                        monitor["left"], monitor["top"],
+                    )
+                else:
+                    if not 0 <= monitor_index < len(sct.monitors):
+                        raise IndexError(
+                            f"Monitor index {monitor_index} out of range; "
+                            f"mss reports {len(sct.monitors)} entries"
+                        )
+                    monitor = sct.monitors[monitor_index]
+                    logger.info(f"Native capture via mss on monitor {monitor_index} ({monitor['width']}x{monitor['height']})")
                 sct_img = sct.grab(monitor)
                 # Convert to PIL Image (mss returns BGRA)
                 img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")

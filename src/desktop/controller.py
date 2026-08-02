@@ -206,8 +206,15 @@ class DesktopController:
             
             # Step 1: Capture
             try:
-                self.current_image = self.capture_engine.capture()
+                self.current_image = self.capture_engine.capture(
+                    region=self._overlay_screen_region()
+                )
                 self.image_path = self.current_image # Provide back-compat
+                # Every OCR box from this capture is measured against these
+                # dimensions, so the overlay needs them to place highlights.
+                self.overlay.set_source_size(
+                    self.current_image.width, self.current_image.height
+                )
             except Exception as e:
                 logger.error("Capture error: %s", e)
                 self._show_error("Couldn't capture screen.\nPlease try again.")
@@ -246,6 +253,31 @@ class DesktopController:
             self.input_manager.set_state(TutorState.IDLE)
             self.overlay.set_shapes([])
             self.ui.lbl_status.setText("Lesson cancelled. Ready.")
+
+    def _overlay_screen_region(self):
+        """Physical-pixel bounds of the screen the overlay covers.
+
+        Capture and overlay must describe the same area, otherwise highlights
+        are placed against a region the user is not looking at. Returns None on
+        WSL, where the PowerShell fallback always grabs the Windows primary
+        screen and cannot honour a region anyway.
+
+        Approximate on mixed-DPI multi-monitor setups: Qt normalises logical
+        coordinates across screens, so the origin is not a uniform multiple of
+        the device pixel ratio there.
+        """
+        screen = getattr(self.overlay, "screen_target", None)
+        if screen is None:
+            return None
+
+        geometry = screen.geometry()
+        ratio = screen.devicePixelRatio()
+        return {
+            "left": round(geometry.x() * ratio),
+            "top": round(geometry.y() * ratio),
+            "width": round(geometry.width() * ratio),
+            "height": round(geometry.height() * ratio),
+        }
 
     def _show_error(self, message):
         msg = QMessageBox(self.ui)
@@ -310,8 +342,15 @@ class DesktopController:
 
     def _render_box(self, box, step):
         if box:
+            # OCR reports boxes in captured-image pixels. The overlay is
+            # measured in logical widget pixels, which differ under OS display
+            # scaling and when a demo screenshot's resolution is not the
+            # screen's. Convert before building any shape; the label geometry
+            # below is then computed in widget space, where the font lives.
+            box = self.overlay.mapper.map_box(box)
+
             attention_type = step.get("attention", "rectangle")
-            
+
             shape = None
             if attention_type == "circle":
                 shape = CircleShape(x=box["left"], y=box["top"], width=box["width"], height=box["height"])
@@ -393,17 +432,23 @@ class DesktopController:
         if self.is_debug_mode:
             self.overlay.set_background(self.image_path, show=True)
             words = build_words(self.ocr_data, min_confidence=0)
-            scale = self.ocr_data.get("_scale", 1)
+            ocr_scale = self.ocr_data.get("_scale", 1)
+            mapper = self.overlay.mapper
             shapes = []
             for w in words:
-                left = round(w["left"] / scale)
-                top = round(w["top"] / scale)
-                width = max(1, round(w["width"] / scale))
-                height = round(w["height"] / scale)
-                
+                # Two separate corrections: undo the OCR upscale to get back to
+                # captured-image pixels, then map those onto the widget.
+                box = mapper.map_box({
+                    "left": w["left"] / ocr_scale,
+                    "top": w["top"] / ocr_scale,
+                    "width": w["width"] / ocr_scale,
+                    "height": w["height"] / ocr_scale,
+                })
+
                 shapes.append(
                     DebugBoxShape(
-                        x=left, y=top, width=width, height=height,
+                        x=box["left"], y=box["top"],
+                        width=box["width"], height=box["height"],
                         text=w["raw_text"],
                         confidence=w["confidence"]
                     )
