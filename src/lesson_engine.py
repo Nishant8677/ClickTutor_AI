@@ -2,9 +2,14 @@ import logging
 import re
 from pathlib import Path
 from PIL import Image
-from src.tutor import model
+from src.tutor import generate_content, response_text
 from src.ocr_locator import find_text
 from src.highlighter import highlight_box
+from src.lesson_validator import (
+    VALID_ATTENTIONS,
+    VALID_EMPHASES,
+    validate_lesson_steps,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +64,27 @@ def extract_section(text, label, next_labels=None):
 
     return ""
 
+def _coerce(value, allowed, default, field, step_number):
+    """Maps a model-supplied enum field onto the vocabulary the renderer knows.
+
+    Gemini occasionally answers with a synonym or a whole phrase. Passing that
+    through means the renderer's else-branch silently draws a rectangle, so
+    normalise here and say so in the log.
+    """
+    normalized = (value or "").strip().lower()
+    if normalized in allowed:
+        return normalized
+    if normalized:
+        logger.warning(
+            "Step %s: unrecognised %s %r; falling back to %r.",
+            step_number, field, value, default,
+        )
+    return default
+
+
 def parse_lesson_steps(response):
     steps = []
+    dropped = 0
 
     for match in STEP_PATTERN.finditer(response):
         step_number = int(match.group(1))
@@ -77,6 +101,15 @@ def parse_lesson_steps(response):
         explanation = extract_section(block, "EXPLANATION")
 
         if not explanation:
+            # Dropping a step the model did produce is worth knowing about:
+            # it usually means the prompt drifted or the label was misspelled.
+            # This used to happen silently, so a half-length lesson looked
+            # exactly like a correct one.
+            dropped += 1
+            logger.warning(
+                "Dropping step %s: no EXPLANATION section found in block %r",
+                step_number, block[:120],
+            )
             continue
 
         steps.append(
@@ -85,11 +118,21 @@ def parse_lesson_steps(response):
                 "title": title or f"Step {step_number}",
                 "anchor": anchor or "NONE",
                 "context": None if not context or context.upper() == "NONE" else context,
-                "attention": (attention or "none").lower(),
-                "emphasis": (emphasis or "low").lower(),
+                "attention": _coerce(
+                    attention, VALID_ATTENTIONS, "none", "attention", step_number
+                ),
+                "emphasis": _coerce(
+                    emphasis, VALID_EMPHASES, "low", "emphasis", step_number
+                ),
                 "explanation": explanation,
                 "highlighted_image": None
             }
+        )
+
+    if dropped:
+        logger.warning(
+            "Parsed %s lesson step(s); dropped %s malformed block(s).",
+            len(steps), dropped,
         )
 
     return steps
@@ -256,13 +299,22 @@ EXPLANATION:
             else:
                 image = self.image_or_path
 
-            response = model.generate_content([
-                prompt,
-                image
-            ])
+            response = generate_content([prompt, image])
 
-            answer = response.text
+            answer = response_text(response)
             parsed_steps = parse_lesson_steps(answer)
+
+            # The validator existed but was only ever called from the test
+            # runner, so nothing checked the runtime path. Structural problems
+            # are logged rather than raised: a partially valid lesson is still
+            # more useful to the learner than an error dialog.
+            is_valid, validation_errors = validate_lesson_steps(parsed_steps)
+            if not is_valid:
+                logger.warning(
+                    "Lesson failed validation with %s issue(s): %s",
+                    len(validation_errors), "; ".join(validation_errors[:5]),
+                )
+
             lesson_steps = self.build_step_highlights(parsed_steps)
 
             if lesson_steps:

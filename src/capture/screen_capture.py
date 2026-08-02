@@ -7,6 +7,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# wslpath is instant; the PowerShell bridge spawns a process and writes a
+# full-screen PNG, so it gets a wider budget. Neither may block forever.
+SUBPROCESS_TIMEOUT_SECONDS = 10
+POWERSHELL_TIMEOUT_SECONDS = 30
+
+
 class ScreenCapture:
     def __init__(self):
         pass
@@ -40,21 +46,34 @@ class ScreenCapture:
             # This satisfies the "no permanent temp files" requirement while keeping WSL working.
             with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
                 temp_path = tf.name
-                
-            script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "desktop", "capture.ps1"))
-            win_output_path = subprocess.check_output(["wslpath", "-w", temp_path]).decode().strip()
-            win_script_path = subprocess.check_output(["wslpath", "-w", script_path]).decode().strip()
-            
-            logger.info("WSL detected. Running capture.ps1 fallback...")
-            subprocess.run([
-                "powershell.exe", "-ExecutionPolicy", "Bypass",
-                "-File", win_script_path, win_output_path
-            ], check=True)
-            
-            img = Image.open(temp_path)
-            img.load()  # Force load into memory before closing/deleting file
-            os.remove(temp_path)
-            return img
+
+            # try/finally: without it, any failure between here and the read
+            # leaked a full screenshot of the user's desktop to /tmp forever.
+            try:
+                script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "desktop", "capture.ps1"))
+                win_output_path = subprocess.check_output(
+                    ["wslpath", "-w", temp_path], timeout=SUBPROCESS_TIMEOUT_SECONDS
+                ).decode().strip()
+                win_script_path = subprocess.check_output(
+                    ["wslpath", "-w", script_path], timeout=SUBPROCESS_TIMEOUT_SECONDS
+                ).decode().strip()
+
+                logger.info("WSL detected. Running capture.ps1 fallback...")
+                # Timed out rather than left to block: a hung powershell.exe
+                # would otherwise wedge the calling thread indefinitely.
+                subprocess.run([
+                    "powershell.exe", "-ExecutionPolicy", "Bypass",
+                    "-File", win_script_path, win_output_path
+                ], check=True, timeout=POWERSHELL_TIMEOUT_SECONDS)
+
+                img = Image.open(temp_path)
+                img.load()  # Force load into memory before closing/deleting file
+                return img
+            finally:
+                try:
+                    os.remove(temp_path)
+                except OSError as exc:
+                    logger.warning("Could not remove temp capture %r: %s", temp_path, exc)
         else:
             with mss.mss() as sct:
                 if region:

@@ -1,3 +1,14 @@
+# The vocabulary the lesson prompt asks Gemini to use. Exported so the parser
+# can coerce out-of-vocabulary values instead of passing them to the renderer,
+# which would silently treat anything unrecognised as a rectangle.
+VALID_ATTENTIONS = frozenset({"circle", "rectangle", "arrow", "underline", "none"})
+VALID_EMPHASES = frozenset({"high", "medium", "low"})
+
+REQUIRED_STEP_KEYS = (
+    "step", "title", "anchor", "attention", "emphasis", "explanation",
+)
+
+
 def validate_lesson_steps(steps):
     """
     Validates a list of structured lesson steps.
@@ -7,8 +18,8 @@ def validate_lesson_steps(steps):
         return False, ["Lesson steps must be a list."]
 
     errors = []
-    valid_attentions = {"circle", "rectangle", "arrow", "underline", "none"}
-    valid_emphases = {"high", "medium", "low"}
+    valid_attentions = VALID_ATTENTIONS
+    valid_emphases = VALID_EMPHASES
 
     for idx, step in enumerate(steps):
         prefix = f"Step {idx + 1}"
@@ -17,7 +28,7 @@ def validate_lesson_steps(steps):
             continue
 
         # Check required keys
-        for key in ["step", "title", "anchor", "attention", "emphasis", "explanation"]:
+        for key in REQUIRED_STEP_KEYS:
             if key not in step:
                 errors.append(f"{prefix} is missing key: '{key}'.")
 
