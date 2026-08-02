@@ -18,13 +18,18 @@ Exits 0 when consistent, 1 otherwise. Tesseract is not required.
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
-from PyQt6.QtWidgets import QApplication
+# Python puts this file's directory on sys.path, not the repository root, so
+# "src" is not importable when invoked as `python tools/verify_geometry.py`.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.attention.coordinates import CoordinateMapper
-from src.attention.overlay import TransparentOverlay
-from src.attention.screens import physical_region
-from src.capture import ScreenCapture
+from PyQt6.QtWidgets import QApplication  # noqa: E402
+
+from src.attention.coordinates import CoordinateMapper  # noqa: E402
+from src.attention.overlay import TransparentOverlay  # noqa: E402
+from src.attention.screens import physical_region  # noqa: E402
+from src.capture import ScreenCapture  # noqa: E402
 
 # A highlight this far out of place is still recognisably on target. Tighter
 # than a character width, looser than float noise and rounding.
