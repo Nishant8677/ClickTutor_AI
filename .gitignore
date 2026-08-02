@@ -13,19 +13,22 @@ __pycache__/
 runtime/
 .temp/
 
-# Generated images in project root (legacy paths, still ignored for safety)
-temp_image.png
-selected_region.png
-screenshot.png
-highlighted_image.png
+# Generated images in project root (legacy paths, still ignored for safety).
+# Leading slash anchors these to the repo root — an unanchored pattern matches
+# at any depth and would silently exclude committed assets such as
+# demo/<name>/screenshot.png.
+/temp_image.png
+/selected_region.png
+/screenshot.png
+/highlighted_image.png
 *_highlighted.png
 debug_*.png
 *_capture.png
-current_capture.png
+/current_capture.png
 
 # Test images (not committed — stored in assets/test_images/ or demo/)
-sample.png
-sample2.png
+/sample.png
+/sample2.png
 
 # Video recordings
 *.mp4
@@ -47,6 +50,10 @@ benchmark_results.json
 # OS files
 .DS_Store
 Thumbs.db
+
+# Windows NTFS alternate-data-stream markers. The ':' is illegal in a Windows
+# filename, so committing one makes the repo impossible to check out there.
+*Zone.Identifier
 
 # Archive (optional: remove if you want archive to be tracked)
 # archive/
