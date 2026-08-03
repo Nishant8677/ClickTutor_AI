@@ -203,3 +203,41 @@ class TestStateSignalWiring:
         manager.set_state(TutorState.ANALYZING)
 
         assert companion.lbl_status.text() == "THINKING"
+
+
+class TestQuestionDisplay:
+    """The question is the point of the interaction, and once the input dialog
+    closes nothing else on screen records what was asked."""
+
+    def test_question_is_hidden_until_asked(self, companion):
+        assert not companion.lbl_question.isVisibleTo(companion)
+
+    def test_question_is_shown_in_quotes(self, companion):
+        companion.set_question("How should I approach this problem?")
+
+        assert companion.lbl_question.isVisibleTo(companion)
+        assert "How should I approach this problem?" in companion.lbl_question.text()
+
+    def test_question_persists_across_steps(self, companion):
+        companion.set_question("Why does this work?")
+        companion.show_step({"title": "t", "explanation": "e"}, 0, 3)
+        companion.show_step({"title": "t2", "explanation": "e2"}, 1, 3)
+
+        assert "Why does this work?" in companion.lbl_question.text()
+
+    def test_returning_to_idle_clears_it(self, companion):
+        companion.set_question("Why does this work?")
+
+        companion.apply_state(TutorState.IDLE)
+
+        assert not companion.lbl_question.isVisibleTo(companion)
+
+    def test_a_very_long_question_is_trimmed(self, companion):
+        companion.set_question("why " * 100)
+
+        assert len(companion.lbl_question.text()) < 140
+
+    def test_empty_question_stays_hidden(self, companion):
+        companion.set_question("   ")
+
+        assert not companion.lbl_question.isVisibleTo(companion)

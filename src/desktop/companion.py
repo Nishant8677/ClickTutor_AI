@@ -50,6 +50,7 @@ _STYLE = """
     border-radius: 14px;
 }
 #status { color: #8ab4f8; font-size: 11px; font-weight: bold; }
+#question { color: #9aa0a6; font-size: 11px; font-style: italic; }
 #title  { color: #ffffff; font-size: 15px; font-weight: bold; }
 #body   { color: #d7d7db; font-size: 12px; }
 #counter { color: #9aa0a6; font-size: 11px; }
@@ -100,6 +101,7 @@ class FloatingCompanion(QWidget):
         self._drag_offset: QPoint | None = None
         self._desired_pos: tuple[int, int] | None = None
         self._thinking_dots = 0
+        self._question = ""
 
         self.setObjectName("companion")
         self.setWindowFlags(
@@ -133,6 +135,15 @@ class FloatingCompanion(QWidget):
         self.lbl_status = QLabel("READY")
         self.lbl_status.setObjectName("status")
         layout.addWidget(self.lbl_status)
+
+        # The question is the whole point of the interaction, and once the
+        # input dialog closes nothing else on screen records what was asked.
+        self.lbl_question = QLabel()
+        self.lbl_question.setObjectName("question")
+        self.lbl_question.setWordWrap(True)
+        self.lbl_question.setFixedWidth(_CONTENT_WIDTH)
+        self.lbl_question.setVisible(False)
+        layout.addWidget(self.lbl_question)
 
         self.lbl_title = QLabel()
         self.lbl_title.setObjectName("title")
@@ -226,7 +237,17 @@ class FloatingCompanion(QWidget):
             self.lbl_title.setText("Press Ctrl+Shift+A")
             self.lbl_body.setText("Ask about anything on your screen.")
             self.lbl_counter.setText("")
+            self._question = ""
+            self.lbl_question.setVisible(False)
 
+        self._apply_geometry()
+
+    def set_question(self, question: str) -> None:
+        """Records what the learner asked, for the life of the lesson."""
+        question = (question or "").strip()
+        self._question = question
+        self.lbl_question.setText(f"“{_fit(question, 120)}”" if question else "")
+        self.lbl_question.setVisible(bool(question))
         self._apply_geometry()
 
     def show_step(self, step: dict, index: int, total: int) -> None:

@@ -1,4 +1,6 @@
 import logging
+import time
+from contextlib import contextmanager
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QFontMetrics
@@ -36,6 +38,11 @@ logger = logging.getLogger(__name__)
 # both also permit "arrow", but relationship arrows are deferred to Phase 4, so
 # such a step is drawn as a rectangle and logged rather than failing silently.
 RENDERABLE_ATTENTIONS = frozenset({"circle", "underline", "rectangle", "none"})
+
+# Time for the window manager to finish removing the companion before a grab.
+# Hiding and capturing in the same tick races, and the panel shows up in the
+# screenshot.
+COMPOSITOR_SETTLE_SECONDS = 0.08
 
 # Shown when OCR reads nothing at all. ClickTutor locates highlights by
 # searching OCR output, so with no words there is nothing to point at.
@@ -304,9 +311,10 @@ class DesktopController:
 
             # Step 1: Capture
             try:
-                self.current_image = self.capture_engine.capture(
-                    region=self._overlay_screen_region()
-                )
+                with self._companion_hidden():
+                    self.current_image = self.capture_engine.capture(
+                        region=self._overlay_screen_region()
+                    )
                 self.image_path = self.current_image  # Provide back-compat
                 # Every OCR box from this capture is measured against these
                 # dimensions, so the overlay needs them to place highlights.
@@ -329,6 +337,7 @@ class DesktopController:
 
             # Step 3: Analyze. OCR and Gemini both run on the worker thread,
             # so the UI stays responsive from here on.
+            self.companion.set_question(question)
             self.input_manager.set_state(TutorState.ANALYZING)
             self.generate_lesson(question)
 
@@ -347,6 +356,29 @@ class DesktopController:
             self._clear_lesson()
             self.input_manager.set_state(TutorState.IDLE)
             self.ui.lbl_status.setText("Lesson cancelled. Ready.")
+
+    @contextmanager
+    def _companion_hidden(self):
+        """Takes the companion off screen for the duration of a capture.
+
+        The companion is always-on-top, so it lands in the screenshot and its
+        own text reaches OCR. The model can then anchor a step on ClickTutor's
+        UI rather than on the learner's code, and the highlight points at the
+        panel instead of the thing being explained.
+
+        The brief sleep lets the compositor actually remove the window before
+        the grab; hiding and capturing in the same tick races on Windows.
+        """
+        was_visible = self.companion.isVisible()
+        if was_visible:
+            self.companion.hide()
+            QApplication.processEvents()
+            time.sleep(COMPOSITOR_SETTLE_SECONDS)
+        try:
+            yield
+        finally:
+            if was_visible:
+                self.companion.show()
 
     def _clear_lesson(self):
         """Drops the current lesson and everything drawn for it."""
