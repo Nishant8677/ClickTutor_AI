@@ -1,0 +1,242 @@
+"""The floating companion: the only window a learner is meant to look at.
+
+Milestone 6. This replaces the developer control panel as the user-facing
+surface. It renders from TutorState rather than being told what to display by
+each call site, so it cannot drift out of sync with what the tutor is actually
+doing.
+
+Deliberately not built here: chat, settings, themes, lesson history. Those are
+out of scope for Phase 3.
+"""
+
+from __future__ import annotations
+
+from PyQt6.QtCore import QPoint, Qt, QTimer, pyqtSignal
+from PyQt6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from src.input.state_machine import TutorState
+
+# States that mean "the tutor is working"; the companion animates through them.
+_BUSY_STATES = frozenset({TutorState.CAPTURING, TutorState.ANALYZING})
+
+# States in which a lesson is on screen and navigation makes sense.
+_LESSON_STATES = frozenset({TutorState.TEACHING, TutorState.FINISHED})
+
+_WIDTH = 380
+_MARGIN = 24
+_THINKING_INTERVAL_MS = 400
+
+_STYLE = """
+#companion {
+    background-color: rgba(24, 24, 30, 235);
+    border: 1px solid rgba(255, 255, 255, 40);
+    border-radius: 14px;
+}
+#status { color: #8ab4f8; font-size: 11px; font-weight: bold; }
+#title  { color: #ffffff; font-size: 15px; font-weight: bold; }
+#body   { color: #d7d7db; font-size: 12px; }
+#counter { color: #9aa0a6; font-size: 11px; }
+QPushButton {
+    background-color: rgba(255, 255, 255, 22);
+    color: #ffffff;
+    border: none;
+    border-radius: 7px;
+    padding: 6px 14px;
+    font-size: 12px;
+}
+QPushButton:hover:enabled { background-color: rgba(255, 255, 255, 45); }
+QPushButton:disabled { color: rgba(255, 255, 255, 70); }
+"""
+
+
+class FloatingCompanion(QWidget):
+    """A small always-on-top panel showing what the tutor is doing.
+
+    Signals are emitted rather than the controller being called directly, so
+    the controller can route them through InputManager like every other action.
+    """
+
+    next_requested = pyqtSignal()
+    prev_requested = pyqtSignal()
+    dismiss_requested = pyqtSignal()
+
+    def __init__(self, screen=None) -> None:
+        super().__init__()
+        self._screen_target = screen or QApplication.primaryScreen()
+        self._drag_offset: QPoint | None = None
+        self._thinking_dots = 0
+
+        self.setObjectName("companion")
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.Tool
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        # Never steal focus: the learner is working in another application and
+        # a capture is about what *they* were looking at.
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self.setStyleSheet(_STYLE)
+        self.setFixedWidth(_WIDTH)
+
+        self._build_ui()
+
+        self._thinking_timer = QTimer(self)
+        self._thinking_timer.setInterval(_THINKING_INTERVAL_MS)
+        self._thinking_timer.timeout.connect(self._tick_thinking)
+
+        self.apply_state(TutorState.IDLE)
+        self._move_to_default_corner()
+
+    # ---------------------------------------------------------------- layout
+
+    def _build_ui(self) -> None:
+        layout = QVBoxLayout()
+        layout.setContentsMargins(18, 14, 18, 14)
+        layout.setSpacing(8)
+
+        self.lbl_status = QLabel("READY")
+        self.lbl_status.setObjectName("status")
+        layout.addWidget(self.lbl_status)
+
+        self.lbl_title = QLabel()
+        self.lbl_title.setObjectName("title")
+        self.lbl_title.setWordWrap(True)
+        layout.addWidget(self.lbl_title)
+
+        self.lbl_body = QLabel()
+        self.lbl_body.setObjectName("body")
+        self.lbl_body.setWordWrap(True)
+        layout.addWidget(self.lbl_body)
+
+        nav = QHBoxLayout()
+        nav.setSpacing(8)
+        self.btn_prev = QPushButton("‹ Back")
+        self.btn_prev.clicked.connect(self.prev_requested)
+        nav.addWidget(self.btn_prev)
+
+        self.lbl_counter = QLabel()
+        self.lbl_counter.setObjectName("counter")
+        self.lbl_counter.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        nav.addWidget(self.lbl_counter, stretch=1)
+
+        self.btn_next = QPushButton("Next ›")
+        self.btn_next.clicked.connect(self.next_requested)
+        nav.addWidget(self.btn_next)
+
+        self.nav_widget = QWidget()
+        self.nav_widget.setLayout(nav)
+        layout.addWidget(self.nav_widget)
+
+        self.setLayout(layout)
+
+    def _move_to_default_corner(self) -> None:
+        if self._screen_target is None:
+            return
+        area = self._screen_target.availableGeometry()
+        self.adjustSize()
+        self.move(
+            area.right() - self.width() - _MARGIN,
+            area.bottom() - self.height() - _MARGIN,
+        )
+
+    # ----------------------------------------------------------- state entry
+
+    def apply_state(self, state: TutorState) -> None:
+        """Renders the companion for a tutor state.
+
+        This is the only entry point for state-driven changes; show_step()
+        supplies the lesson content once TEACHING has been entered.
+        """
+        busy = state in _BUSY_STATES
+        teaching = state in _LESSON_STATES
+
+        self.nav_widget.setVisible(teaching)
+
+        if busy:
+            self.lbl_status.setText("CAPTURING" if state == TutorState.CAPTURING else "THINKING")
+            self.lbl_title.setText("Reading your screen…")
+            self.lbl_body.setText("")
+            self._start_thinking()
+        elif teaching:
+            self._stop_thinking()
+            self.lbl_status.setText("TEACHING")
+        else:
+            self._stop_thinking()
+            self.lbl_status.setText("READY")
+            self.lbl_title.setText("Press Ctrl+Shift+A")
+            self.lbl_body.setText("Ask about anything on your screen.")
+            self.lbl_counter.setText("")
+
+        self.adjustSize()
+
+    def show_step(self, step: dict, index: int, total: int) -> None:
+        """Displays one lesson step.
+
+        Args:
+            step: A parsed lesson step.
+            index: Zero-based position of the step.
+            total: Number of steps in the lesson.
+        """
+        self._stop_thinking()
+        self.lbl_status.setText("TEACHING")
+        self.lbl_title.setText(step.get("title", ""))
+        self.lbl_body.setText(step.get("explanation", ""))
+        self.lbl_counter.setText(f"{index + 1} / {total}")
+        self.nav_widget.setVisible(True)
+        self.btn_prev.setEnabled(index > 0)
+        self.btn_next.setEnabled(index < total - 1)
+        self.adjustSize()
+
+    def show_message(self, status: str, title: str, body: str = "") -> None:
+        """Shows a one-off message, e.g. an error the user should see."""
+        self._stop_thinking()
+        self.lbl_status.setText(status)
+        self.lbl_title.setText(title)
+        self.lbl_body.setText(body)
+        self.nav_widget.setVisible(False)
+        self.adjustSize()
+
+    # ------------------------------------------------------------- thinking
+
+    def _start_thinking(self) -> None:
+        self._thinking_dots = 0
+        if not self._thinking_timer.isActive():
+            self._thinking_timer.start()
+
+    def _stop_thinking(self) -> None:
+        if self._thinking_timer.isActive():
+            self._thinking_timer.stop()
+
+    def _tick_thinking(self) -> None:
+        self._thinking_dots = (self._thinking_dots + 1) % 4
+        self.lbl_body.setText("•" * self._thinking_dots)
+
+    # ------------------------------------------------------------- dragging
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_offset = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        if self._drag_offset is not None and event.buttons() & Qt.MouseButton.LeftButton:
+            self.move(event.globalPosition().toPoint() - self._drag_offset)
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        self._drag_offset = None
+        super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() == Qt.Key.Key_Escape:
+            self.dismiss_requested.emit()
+        else:
+            super().keyPressEvent(event)

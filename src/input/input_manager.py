@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 
-from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QObject, pyqtSignal
 
 from src.input.events import InputAction
 from src.input.state_machine import TutorState
@@ -29,6 +29,11 @@ class InputManager(QObject):
     this class gives the connection a receiver with main-thread affinity.
     """
 
+    # Emitted after the state actually changes. The companion widget renders
+    # from this rather than the controller pushing UI updates from each call
+    # site, which is what kept the old panel and the real state out of sync.
+    state_changed = pyqtSignal(TutorState)
+
     def __init__(self) -> None:
         super().__init__()
         self.current_state = TutorState.IDLE
@@ -42,6 +47,7 @@ class InputManager(QObject):
                 new_state.name,
             )
             self.current_state = new_state
+            self.state_changed.emit(new_state)
 
     def add_listener(self, callback: Callable[[InputAction], None]) -> None:
         self.listeners.append(callback)
