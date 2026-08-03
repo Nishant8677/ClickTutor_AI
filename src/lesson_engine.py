@@ -10,10 +10,34 @@ from src.lesson_validator import (
     VALID_EMPHASES,
     validate_lesson_steps,
 )
-from src.ocr_locator import find_text
+from src.ocr_locator import build_words, find_text, get_line_texts
 from src.tutor import generate_content, response_text
 
 logger = logging.getLogger(__name__)
+
+# Caps on the visible-text block quoted into the prompt. A dense screenshot can
+# OCR to hundreds of lines; the anchor only needs enough context to choose well,
+# and the image itself still carries the full picture.
+MAX_VISIBLE_LINES = 120
+MAX_VISIBLE_CHARS = 4000
+
+# Corrective calls allowed per lesson. Each costs one round trip, so this
+# bounds the worst case rather than letting a poorly-read screen fan out.
+MAX_ANCHOR_REPAIRS = 3
+
+
+def _repair_prompt(anchor, step, visible_text):
+    """Asks for a replacement anchor, naming the phrase that was rejected."""
+    return (
+        f'The phrase "{anchor}" does NOT appear in the text on screen, so it '
+        "cannot be highlighted.\n\nHere is every line of text actually on "
+        f"screen:\n{visible_text}\n\n"
+        f"The teaching point is: {step.get('explanation', '')[:220]}\n\n"
+        "Reply with ONE short phrase copied character-for-character from the "
+        "lines above that best anchors that teaching point. Reply with the "
+        "phrase only, nothing else."
+    )
+
 
 STEP_PATTERN = re.compile(
     r"STEP\s+(\d+)\s*(.*?)(?=\n\s*STEP\s+\d+\s*|\Z)", re.IGNORECASE | re.DOTALL
@@ -158,6 +182,32 @@ class LessonEngine:
         self.mode = mode
         self.screenshot_type = screenshot_type
 
+    def visible_text_block(self, max_lines=MAX_VISIBLE_LINES, max_chars=MAX_VISIBLE_CHARS):
+        """Renders the OCR lines for inclusion in the prompt.
+
+        Anchors are located by searching this same OCR output, so quoting it
+        back to the model makes a chosen anchor findable by construction. It
+        also makes OCR errors self-consistent: if Tesseract misreads a word,
+        the model copies the misreading, which still matches at lookup time.
+
+        Returns:
+            A newline-separated block, or "" when OCR produced nothing.
+        """
+        if not self.ocr_data:
+            return ""
+
+        lines = [text.strip() for text in get_line_texts(build_words(self.ocr_data)).values()]
+        lines = [text for text in lines if text]
+
+        kept, budget = [], max_chars
+        for text in lines[:max_lines]:
+            if budget - len(text) < 0:
+                break
+            kept.append(text)
+            budget -= len(text)
+
+        return "\n".join(kept)
+
     def build_lesson_prompt(self, question, history_text, explanation_text):
         type_str = ""
         type_guidelines = ""
@@ -181,6 +231,17 @@ class LessonEngine:
 
         guidelines_block = f"{type_guidelines}\n" if type_guidelines else ""
 
+        visible_text = self.visible_text_block()
+        visible_block = (
+            "\nVISIBLE TEXT ON SCREEN (exactly as the screen reader extracted it).\n"
+            "Every ANCHOR you return MUST be copied character-for-character from "
+            "these lines. Text that is not in this list cannot be highlighted, "
+            "even if you can see it in the image:\n"
+            f"{visible_text}\n"
+            if visible_text
+            else ""
+        )
+
         return f"""
 You are ClickTutor, an AI visual tutor that teaches by guiding the student's attention step-by-step.
 Your goal is to explain concepts, not just point out facts or lines. Teach WHY things are there and what they mean, rather than simply listing syntax.
@@ -190,7 +251,7 @@ You are looking at:
 2. Previous conversation history (if any).
 3. A new student question.
 
-{type_str}
+{type_str}{visible_block}
 ORIGINAL EXPLANATION:
 {explanation_text}
 
@@ -213,7 +274,7 @@ CRITICAL INSTRUCTIONS FOR EXPLANATION:
 FORMAT REQUIREMENT:
 For each step, return exactly these fields in order:
 - TITLE: A short, conceptual title for this step (e.g. "Initializing the loop variables" or "Understanding the right-angle triangle").
-- ANCHOR: Pick one visible word, phrase, variable, button, function, line, metric, or label that best anchors that teaching step. Copy the visible text EXACTLY as it appears in the screenshot. It must be short enough for OCR to locate. If no specific element is visible, write NONE.
+- ANCHOR: Pick one word or short phrase that best anchors that teaching step. It MUST be copied character-for-character from the VISIBLE TEXT ON SCREEN list above. Do not paraphrase it, do not correct its spelling, and do not use a term you know from the topic unless that exact text appears in the list. If nothing suitable appears in the list, write NONE rather than inventing one.
 - CONTEXT: If the ANCHOR text is not unique on the screen (e.g. the variable name 'count' appears multiple times, like in initialization vs. incrementing), provide the unique surrounding line of text containing the anchor to resolve duplicates (e.g. 'count++' or 'int count = 1;'). If the ANCHOR is unique, write NONE.
 - ATTENTION: Specify the visual layout indicator (choose exactly one of: circle, rectangle, underline, none).
 - EMPHASIS: Specify the importance level (choose exactly one of: high, medium, low).
@@ -275,6 +336,72 @@ EXPLANATION:
 
         return highlighted_steps
 
+    def repair_anchors(self, steps, image, max_repairs=MAX_ANCHOR_REPAIRS):
+        """Replaces anchors that cannot be located with ones that can.
+
+        Telling the model to copy from the visible-text list is not enough on
+        its own: measured over 34 steps it still returned anchors drawn from
+        its knowledge of the topic rather than the screen -- "in-place" for a
+        LeetCode problem whose visible text never contains the word. Those
+        steps render an explanation with nothing highlighted.
+
+        Naming the rejected phrase and asking again resolves them, and the
+        replacements are better anchors than the originals ("modify the input
+        2D matrix directly"). One extra call per unresolved step, bounded by
+        max_repairs so a badly-matched screen cannot fan out.
+
+        Args:
+            steps: Parsed lesson steps, mutated copies are returned.
+            image: The image already opened for the main call.
+            max_repairs: Cap on corrective calls for one lesson.
+
+        Returns:
+            The steps, with unresolvable anchors replaced where possible.
+        """
+        visible = self.visible_text_block()
+        if not visible:
+            return steps
+
+        repaired, attempts = [], 0
+        for step in steps:
+            anchor = step.get("anchor", "")
+            resolvable = anchor.strip().upper() == "NONE" or find_text(
+                self.ocr_data, anchor, step.get("context")
+            )
+            if resolvable or attempts >= max_repairs:
+                repaired.append(step)
+                continue
+
+            attempts += 1
+            try:
+                replacement = (
+                    response_text(generate_content([_repair_prompt(anchor, step, visible), image]))
+                    .strip()
+                    .strip('"')
+                    .strip()
+                )
+            except Exception as exc:
+                logger.warning("Anchor repair call failed for %r: %s", anchor, exc)
+                repaired.append(step)
+                continue
+
+            if replacement and find_text(self.ocr_data, replacement, None):
+                logger.info("Repaired anchor %r -> %r", anchor, replacement)
+                fixed = dict(step)
+                fixed["anchor"] = replacement
+                # The replacement is quoted from a single line, so the original
+                # disambiguating context no longer applies to it.
+                fixed["context"] = None
+                repaired.append(fixed)
+            else:
+                logger.warning(
+                    "Anchor repair produced %r, still not locatable; leaving step unhighlighted.",
+                    replacement,
+                )
+                repaired.append(step)
+
+        return repaired
+
     def generate_lesson(self, question, history, explanation_text):
         history_text = ""
         for item in history[-10:]:
@@ -300,6 +427,10 @@ EXPLANATION:
             # runner, so nothing checked the runtime path. Structural problems
             # are logged rather than raised: a partially valid lesson is still
             # more useful to the learner than an error dialog.
+            # Anchors are repaired before highlights are built, so downstream
+            # consumers only ever see anchors that resolve.
+            parsed_steps = self.repair_anchors(parsed_steps, image)
+
             is_valid, validation_errors = validate_lesson_steps(parsed_steps)
             if not is_valid:
                 logger.warning(

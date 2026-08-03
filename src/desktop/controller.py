@@ -36,6 +36,15 @@ logger = logging.getLogger(__name__)
 # such a step is drawn as a rectangle and logged rather than failing silently.
 RENDERABLE_ATTENTIONS = frozenset({"circle", "underline", "rectangle", "none"})
 
+# Shown when OCR reads nothing at all. ClickTutor locates highlights by
+# searching OCR output, so with no words there is nothing to point at.
+UNREADABLE_SCREEN_MESSAGE = (
+    "I couldn't read any text on that screen.\n\n"
+    "ClickTutor finds things to point at by reading the text on your screen, "
+    "so it needs readable text — code, documentation, or a web page works best. "
+    "Try zooming in, or capturing an area with clearer text."
+)
+
 
 class LessonWorker(QThread):
     # Named lesson_ready rather than finished: QThread already defines a
@@ -56,6 +65,16 @@ class LessonWorker(QThread):
             # 3x-upscaled full-screen image takes long enough to visibly freeze
             # the UI, and it has to finish before Gemini can be called anyway.
             ocr_data = extract_ocr_data(self.image)
+
+            # A screen Tesseract cannot read produces a lesson in which no step
+            # can ever be highlighted. Measured on a maths image: zero OCR
+            # words, and every anchor missed. Fail here rather than spend an
+            # API call producing a lesson that silently points at nothing.
+            if not build_words(ocr_data):
+                logger.warning("OCR produced no usable words; skipping lesson generation.")
+                self.error.emit(UNREADABLE_SCREEN_MESSAGE)
+                return
+
             engine = LessonEngine(self.image, ocr_data)
             answer, _, steps = engine.generate_lesson(self.question, [], "")
             self.lesson_ready.emit(ocr_data, steps, answer)
@@ -360,6 +379,12 @@ class DesktopController:
         self.ui.btn_capture.setEnabled(True)
         self.input_manager.set_state(TutorState.IDLE)
         self.ui.lbl_status.setText("Ready.")
+
+        # An unreadable screen is not a network fault, so offering Demo Mode
+        # would be a non-sequitur. Say what actually happened.
+        if error_msg == UNREADABLE_SCREEN_MESSAGE:
+            self._show_error(error_msg)
+            return
 
         # Graceful Failure: Network or Gemini issue
         reply = QMessageBox.question(
