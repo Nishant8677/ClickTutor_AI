@@ -94,6 +94,76 @@ class TestStepDisplay:
         assert companion.lbl_title.text() == ""
 
 
+class TestGeometryStability:
+    """Guards the bug where the panel walked off the top of the screen.
+
+    Observed live: y went 910 -> 318 -> 278 -> ... -> -2 across step changes,
+    because each resize let Qt resolve the position afresh and the error
+    accumulated.
+    """
+
+    SHORT = {"title": "A", "explanation": "Short."}
+    LONG = {"title": "B", "explanation": "A much longer explanation. " * 12}
+
+    def test_position_survives_alternating_content_heights(self, companion):
+        companion.show_step(self.SHORT, 0, 4)
+        start = (companion.x(), companion.y())
+
+        for step in (self.LONG, self.SHORT, self.LONG, self.SHORT):
+            companion.show_step(step, 1, 4)
+
+        assert (companion.x(), companion.y()) == start
+
+    def test_does_not_drift_over_many_steps(self, companion):
+        # A taller step is legitimately lifted so it stays on screen, so the
+        # invariant is that identical content always lands in the same place --
+        # the error must not accumulate across cycles.
+        companion.show_step(self.SHORT, 0, 20)
+        start_y = companion.y()
+
+        seen = []
+        for i in range(20):
+            companion.show_step(self.LONG, i, 20)
+            companion.show_step(self.SHORT, i, 20)
+            seen.append(companion.y())
+
+        assert seen == [start_y] * 20
+
+    def test_stays_within_the_screen(self, companion, qt_app):
+        companion.show_step(self.LONG, 0, 4)
+        area = qt_app.primaryScreen().availableGeometry()
+
+        assert companion.y() >= area.top()
+        assert companion.x() >= area.left()
+
+    def test_width_never_exceeds_the_fixed_width(self, companion):
+        # Qt warned "Unable to set geometry 475x... maximum size: 380" on every
+        # step because wrapping labels reported a sizeHint wider than the window.
+        companion.show_step(self.LONG, 0, 4)
+
+        assert companion.width() == 380
+
+
+class TestExplanationFitting:
+    def test_short_text_is_untouched(self, companion):
+        companion.show_step({"title": "t", "explanation": "Brief."}, 0, 1)
+
+        assert companion.lbl_body.text() == "Brief."
+
+    def test_long_text_is_truncated_with_an_ellipsis(self, companion):
+        companion.show_step({"title": "t", "explanation": "word " * 300}, 0, 1)
+
+        body = companion.lbl_body.text()
+        assert body.endswith("…")
+        assert len(body) <= 421
+
+    def test_truncation_lands_on_a_word_boundary(self, companion):
+        companion.show_step({"title": "t", "explanation": "alpha bravo " * 80}, 0, 1)
+
+        # No half-word before the ellipsis.
+        assert companion.lbl_body.text().rstrip("…").split()[-1] in {"alpha", "bravo"}
+
+
 class TestSignals:
     def test_buttons_emit_navigation_requests(self, companion):
         seen = []

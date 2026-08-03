@@ -30,8 +30,18 @@ _BUSY_STATES = frozenset({TutorState.CAPTURING, TutorState.ANALYZING})
 _LESSON_STATES = frozenset({TutorState.TEACHING, TutorState.FINISHED})
 
 _WIDTH = 380
+_PADDING = 18
+# Wrapping labels report a sizeHint wider than the window unless their width is
+# pinned, which made Qt request 475px against a 380px maximum and warn on every
+# step change.
+_CONTENT_WIDTH = _WIDTH - (_PADDING * 2)
 _MARGIN = 24
 _THINKING_INTERVAL_MS = 400
+
+# Explanations are clipped mid-sentence if they overflow, which looks broken.
+# Truncating explicitly is honest about it, and a companion is not the place
+# for an essay -- the overlay is doing the pointing.
+MAX_EXPLANATION_CHARS = 420
 
 _STYLE = """
 #companion {
@@ -56,6 +66,23 @@ QPushButton:disabled { color: rgba(255, 255, 255, 70); }
 """
 
 
+def _fit(text: str, limit: int = MAX_EXPLANATION_CHARS) -> str:
+    """Trims an explanation to what the panel can show without clipping.
+
+    Cuts on a word boundary so the result reads as a sentence rather than
+    stopping mid-word.
+    """
+    text = (text or "").strip()
+    if len(text) <= limit:
+        return text
+
+    cut = text[:limit]
+    space = cut.rfind(" ")
+    if space > limit * 0.6:
+        cut = cut[:space]
+    return cut.rstrip(" ,;:.") + "…"
+
+
 class FloatingCompanion(QWidget):
     """A small always-on-top panel showing what the tutor is doing.
 
@@ -71,6 +98,7 @@ class FloatingCompanion(QWidget):
         super().__init__()
         self._screen_target = screen or QApplication.primaryScreen()
         self._drag_offset: QPoint | None = None
+        self._desired_pos: tuple[int, int] | None = None
         self._thinking_dots = 0
 
         self.setObjectName("companion")
@@ -99,7 +127,7 @@ class FloatingCompanion(QWidget):
 
     def _build_ui(self) -> None:
         layout = QVBoxLayout()
-        layout.setContentsMargins(18, 14, 18, 14)
+        layout.setContentsMargins(_PADDING, 14, _PADDING, 14)
         layout.setSpacing(8)
 
         self.lbl_status = QLabel("READY")
@@ -109,11 +137,13 @@ class FloatingCompanion(QWidget):
         self.lbl_title = QLabel()
         self.lbl_title.setObjectName("title")
         self.lbl_title.setWordWrap(True)
+        self.lbl_title.setFixedWidth(_CONTENT_WIDTH)
         layout.addWidget(self.lbl_title)
 
         self.lbl_body = QLabel()
         self.lbl_body.setObjectName("body")
         self.lbl_body.setWordWrap(True)
+        self.lbl_body.setFixedWidth(_CONTENT_WIDTH)
         layout.addWidget(self.lbl_body)
 
         nav = QHBoxLayout()
@@ -142,10 +172,32 @@ class FloatingCompanion(QWidget):
             return
         area = self._screen_target.availableGeometry()
         self.adjustSize()
-        self.move(
+        self._desired_pos = (
             area.right() - self.width() - _MARGIN,
             area.bottom() - self.height() - _MARGIN,
         )
+        self._apply_geometry()
+
+    def _apply_geometry(self) -> None:
+        """Resizes to fit the content, then restores the intended position.
+
+        Height changes between steps, and letting Qt resolve the position each
+        time made the window creep: it drifted upward by the height delta on
+        every step change and eventually left the top of the screen. Re-applying
+        a stored intent instead of reading back the current geometry means the
+        error cannot accumulate.
+        """
+        self.adjustSize()
+
+        if self._desired_pos is None or self._screen_target is None:
+            return
+
+        x, y = self._desired_pos
+        area = self._screen_target.availableGeometry()
+        # Clamp so a tall step cannot push the panel off-screen.
+        x = max(area.left(), min(x, area.right() - self.width()))
+        y = max(area.top(), min(y, area.bottom() - self.height()))
+        self.move(x, y)
 
     # ----------------------------------------------------------- state entry
 
@@ -175,7 +227,7 @@ class FloatingCompanion(QWidget):
             self.lbl_body.setText("Ask about anything on your screen.")
             self.lbl_counter.setText("")
 
-        self.adjustSize()
+        self._apply_geometry()
 
     def show_step(self, step: dict, index: int, total: int) -> None:
         """Displays one lesson step.
@@ -188,12 +240,12 @@ class FloatingCompanion(QWidget):
         self._stop_thinking()
         self.lbl_status.setText("TEACHING")
         self.lbl_title.setText(step.get("title", ""))
-        self.lbl_body.setText(step.get("explanation", ""))
+        self.lbl_body.setText(_fit(step.get("explanation", "")))
         self.lbl_counter.setText(f"{index + 1} / {total}")
         self.nav_widget.setVisible(True)
         self.btn_prev.setEnabled(index > 0)
         self.btn_next.setEnabled(index < total - 1)
-        self.adjustSize()
+        self._apply_geometry()
 
     def show_message(self, status: str, title: str, body: str = "") -> None:
         """Shows a one-off message, e.g. an error the user should see."""
@@ -202,7 +254,7 @@ class FloatingCompanion(QWidget):
         self.lbl_title.setText(title)
         self.lbl_body.setText(body)
         self.nav_widget.setVisible(False)
-        self.adjustSize()
+        self._apply_geometry()
 
     # ------------------------------------------------------------- thinking
 
@@ -232,6 +284,10 @@ class FloatingCompanion(QWidget):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:
+        if self._drag_offset is not None:
+            # Remember where the user put it, so a later step change restores
+            # that position rather than snapping back to the corner.
+            self._desired_pos = (self.x(), self.y())
         self._drag_offset = None
         super().mouseReleaseEvent(event)
 
