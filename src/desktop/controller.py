@@ -31,6 +31,11 @@ from src.ocr_locator import build_words, extract_ocr_data
 
 logger = logging.getLogger(__name__)
 
+# Attention types the renderer can actually draw. The prompt and the validator
+# both also permit "arrow", but relationship arrows are deferred to Phase 4, so
+# such a step is drawn as a rectangle and logged rather than failing silently.
+RENDERABLE_ATTENTIONS = frozenset({"circle", "underline", "rectangle", "none"})
+
 
 class LessonWorker(QThread):
     # Named lesson_ready rather than finished: QThread already defines a
@@ -407,6 +412,16 @@ class DesktopController:
                     x=box["left"], y=box["top"], width=box["width"], height=box["height"]
                 )
             else:
+                # The prompt offers "arrow", the validator accepts it, and the
+                # renderer has no arrow shape -- relationship arrows are Phase 4
+                # work. Such a step silently became a rectangle, so say so.
+                if attention_type not in RENDERABLE_ATTENTIONS:
+                    logger.warning(
+                        "Step %s requested attention %r, which cannot be drawn yet; "
+                        "falling back to a rectangle.",
+                        step.get("step"),
+                        attention_type,
+                    )
                 shape = RectangleShape(
                     x=box["left"], y=box["top"], width=box["width"], height=box["height"]
                 )
@@ -431,6 +446,17 @@ class DesktopController:
             ]
             self.overlay.set_shapes(shapes)
         else:
+            # The model is asked for an anchor that is literally on screen, but
+            # it sometimes invents one. Observed live: an anchor of "in-place"
+            # for a screenshot whose OCR contains no such text. The step then
+            # shows an explanation with nothing highlighted, which reads as the
+            # tutor pointing at nothing.
+            logger.warning(
+                "Step %s: anchor %r could not be located on screen; "
+                "showing this step without a highlight.",
+                step.get("step"),
+                step.get("anchor"),
+            )
             self.overlay.set_shapes([])
 
     def _interrupt_demo(self):
