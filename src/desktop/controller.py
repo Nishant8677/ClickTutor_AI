@@ -25,6 +25,7 @@ from src.attention.shapes import (
     RectangleShape,
     UnderlineShape,
 )
+from src.desktop.companion import FloatingCompanion
 from src.input import InputAction, InputManager, TutorState
 from src.locator import OcrLocator
 from src.ocr_locator import build_words, extract_ocr_data
@@ -194,7 +195,7 @@ class DesktopUI(QWidget):
 
 
 class DesktopController:
-    def __init__(self, default_image=None):
+    def __init__(self, default_image=None, show_dev_panel=False):
         from src.capture import ScreenCapture
         from src.desktop.demo_manager import DemoManager
         from src.desktop.recorder import Mp4Recorder
@@ -203,6 +204,9 @@ class DesktopController:
         self.image_path = default_image
         self.current_image = None
         self.ocr_data = None
+        # M7: the developer panel is opt-in. By default the learner sees only
+        # the overlay and the companion, which is what a demo should show.
+        self.show_dev_panel = show_dev_panel
 
         # Injected rather than called directly, so an AI-based locator can
         # replace this without the controller changing. See src/locator/.
@@ -228,6 +232,20 @@ class DesktopController:
         self.overlay = TransparentOverlay()
         self.ui = DesktopUI(self)
 
+        # The companion renders from state rather than being told what to show
+        # at each call site, so it cannot drift out of sync with the tutor.
+        self.companion = FloatingCompanion(screen=self.overlay.screen_target)
+        self.input_manager.state_changed.connect(self.companion.apply_state)
+        self.companion.next_requested.connect(
+            lambda: self.input_manager.handle_action(InputAction.NEXT_STEP)
+        )
+        self.companion.prev_requested.connect(
+            lambda: self.input_manager.handle_action(InputAction.PREV_STEP)
+        )
+        self.companion.dismiss_requested.connect(
+            lambda: self.input_manager.handle_action(InputAction.CANCEL_LESSON)
+        )
+
         self.capture_engine = ScreenCapture()
         self.demo_manager = DemoManager(self.capture_engine)
 
@@ -249,7 +267,11 @@ class DesktopController:
 
     def start(self):
         self.overlay.show()
-        self.ui.show()
+        self.companion.show()
+        if self.show_dev_panel:
+            self.ui.show()
+        else:
+            logger.info("Developer panel hidden; run with --dev to show it.")
         self.hotkeys.start()
 
         # Only preload when a caller explicitly supplied an image. This used to
@@ -383,6 +405,11 @@ class DesktopController:
         # An unreadable screen is not a network fault, so offering Demo Mode
         # would be a non-sequitur. Say what actually happened.
         if error_msg == UNREADABLE_SCREEN_MESSAGE:
+            self.companion.show_message(
+                "CAN'T READ",
+                "No readable text on that screen",
+                "Try capturing an area with clearer text, such as code or documentation.",
+            )
             self._show_error(error_msg)
             return
 
@@ -413,6 +440,7 @@ class DesktopController:
         self.input_manager.set_state(TutorState.TEACHING)
 
         step = self.lesson_steps[self.current_step_index]
+        self.companion.show_step(step, self.current_step_index, len(self.lesson_steps))
         location = self.locator.locate(self.ocr_data, step["anchor"], step["context"])
         self._render_box(location.box if location else None, step)
 
@@ -471,17 +499,18 @@ class DesktopController:
             ]
             self.overlay.set_shapes(shapes)
         else:
-            # The model is asked for an anchor that is literally on screen, but
-            # it sometimes invents one. Observed live: an anchor of "in-place"
-            # for a screenshot whose OCR contains no such text. The step then
-            # shows an explanation with nothing highlighted, which reads as the
-            # tutor pointing at nothing.
-            logger.warning(
-                "Step %s: anchor %r could not be located on screen; "
-                "showing this step without a highlight.",
-                step.get("step"),
-                step.get("anchor"),
-            )
+            # "NONE" is the model correctly declining to anchor a step that has
+            # no on-screen referent, so it is expected rather than a failure.
+            # Anything else reaching here is an anchor that could not be
+            # located even after repair, which is worth knowing about.
+            anchor = (step.get("anchor") or "").strip().upper()
+            if anchor and anchor != "NONE":
+                logger.warning(
+                    "Step %s: anchor %r could not be located on screen; "
+                    "showing this step without a highlight.",
+                    step.get("step"),
+                    step.get("anchor"),
+                )
             self.overlay.set_shapes([])
 
     def _interrupt_demo(self):

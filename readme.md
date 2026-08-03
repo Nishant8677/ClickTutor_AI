@@ -143,6 +143,14 @@ GEMINI_API_KEY=your_api_key_here
 D:\venvs\clicktutor\Scripts\python.exe desktop.py
 ```
 
+You get the transparent overlay plus a small floating companion, and nothing
+else. The developer panel — demo dropdown, MP4 recorder, debug toggle — is
+hidden by default so a recording never has to be cropped around it. To show it:
+
+```powershell
+D:\venvs\clicktutor\Scripts\python.exe desktop.py --dev
+```
+
 > **Run this natively, not from WSL.** Under WSLg, Qt renders into the WSLg
 > display server while screen capture reads the Windows desktop — two
 > different displays — so the overlay cannot draw on top of Windows

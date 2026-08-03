@@ -74,12 +74,18 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
 
+    args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    # M7: the learner sees only the overlay and the companion. The developer
+    # panel -- demo dropdown, MP4 recorder, debug toggle -- is opt-in, so a
+    # recording never has to be cropped around it.
+    show_dev_panel = "--dev" in sys.argv
+
     # Optional image to preload for OCR debugging. Normally omitted: the live
     # capture supplies the image. This used to default to "sample2.png", which
     # is not in the repository, so every launch failed to preload.
-    image_path = sys.argv[1] if len(sys.argv) > 1 else None
+    image_path = args[0] if args else None
 
-    controller = DesktopController(default_image=image_path)
+    controller = DesktopController(default_image=image_path, show_dev_panel=show_dev_panel)
     controller.start()
 
     sys.exit(app.exec())
