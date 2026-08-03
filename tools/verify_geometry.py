@@ -30,6 +30,7 @@ from src.attention.coordinates import CoordinateMapper  # noqa: E402
 from src.attention.overlay import TransparentOverlay  # noqa: E402
 from src.attention.screens import physical_region  # noqa: E402
 from src.capture import ScreenCapture  # noqa: E402
+from src.console import configure_stdio  # noqa: E402
 
 # A highlight this far out of place is still recognisably on target. Tighter
 # than a character width, looser than float noise and rounding.
@@ -42,6 +43,7 @@ def _check(label: str, passed: bool, detail: str) -> bool:
 
 
 def main() -> int:
+    configure_stdio()
     app = QApplication(sys.argv)
     overlay = TransparentOverlay()
     screen = overlay.screen_target

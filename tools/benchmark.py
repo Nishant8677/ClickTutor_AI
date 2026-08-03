@@ -7,12 +7,15 @@ import numpy as np
 import PIL.Image
 from dotenv import load_dotenv
 
+from src.console import configure_stdio
 from src.desktop.capture import CaptureEngine
 from src.lesson_engine import LessonEngine, parse_lesson_steps
 from src.ocr_locator import extract_ocr_data, find_text
 
 
 def run_benchmark(iterations=5):
+    # Prints model output and OCR'd screen text, both arbitrary Unicode.
+    configure_stdio()
     load_dotenv()
     api_key = os.getenv("GEMINI_API_KEY")
     genai.configure(api_key=api_key)

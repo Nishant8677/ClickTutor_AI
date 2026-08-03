@@ -1,11 +1,17 @@
 import sys
 from pathlib import Path
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+# Add project root to path. parents[2] because this lives at
+# tools/manual/run_tests.py -- parents[1] is tools/.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from src.chat_tutor import TutorSession
-from src.lesson_validator import validate_lesson_steps
+from src.chat_tutor import TutorSession  # noqa: E402
+from src.console import configure_stdio  # noqa: E402
+from src.lesson_validator import validate_lesson_steps  # noqa: E402
+
+# The status markers below are emoji, which are not representable in the
+# legacy Windows codepage. Without this the script dies on its first print.
+configure_stdio()
 
 
 def run_screenshot_test_suite():
