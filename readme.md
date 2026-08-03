@@ -91,16 +91,33 @@ cd ClickTutor_AI
 ```
 
 ### 2. Create a virtual environment
+
+The desktop overlay must run on **native Windows** (or native Linux), while
+tests and tooling are usually run from WSL. Those are two different
+interpreters, and mixing them up produces a confusing `ModuleNotFoundError`.
+`desktop.py` detects this and tells you which one to use.
+
+**Windows — required for the desktop overlay.** Put the environment on a local
+drive rather than inside a `\\wsl$` share: Qt loads ~100 MB of DLLs at startup
+and the 9p share makes that noticeably slower.
+
+```powershell
+py -3.11 -m venv D:\venvs\clicktutor
+D:\venvs\clicktutor\Scripts\pip install -r requirements.txt
+```
+
+**WSL / Linux — for tests, lint and the Streamlit app.**
+
 ```bash
 python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# or
-venv\Scripts\activate  # Windows
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ### 3. Install dependencies
+Covered by the commands above. For development tooling (pytest, matplotlib):
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
 ### 4. Install Tesseract OCR
@@ -122,19 +139,34 @@ GEMINI_API_KEY=your_api_key_here
 ## Running ClickTutor
 
 ### Desktop Overlay (Primary Mode)
-```bash
-python desktop.py
+```powershell
+D:\venvs\clicktutor\Scripts\python.exe desktop.py
 ```
 
 > **Run this natively, not from WSL.** Under WSLg, Qt renders into the WSLg
 > display server while screen capture reads the Windows desktop — two
 > different displays — so the overlay cannot draw on top of Windows
-> applications. WSL is fine for the Streamlit mode and for the test suite.
+> applications. The app starts and hotkeys register, so the failure is silent;
+> `desktop.py` prints a warning when it detects WSL. WSL is fine for the
+> Streamlit mode and for the test suite.
 
 Optionally pass an image to preload for OCR debugging:
-```bash
-python desktop.py path/to/screenshot.png
+```powershell
+D:\venvs\clicktutor\Scripts\python.exe desktop.py path/to/screenshot.png
 ```
+
+### Verifying overlay alignment
+
+Highlights are only correct if screen capture and the overlay agree about
+geometry, which differs under display scaling. This reports pass/fail
+numerically and needs no Tesseract:
+
+```powershell
+D:\venvs\clicktutor\Scripts\python.exe tools\verify_geometry.py
+```
+
+Run it once per display-scaling setting and per monitor. Then confirm visually
+with **Ctrl+Shift+D** in the running app: debug boxes should sit on the words.
 
 ### Streamlit Web App
 ```bash
