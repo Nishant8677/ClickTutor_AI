@@ -32,8 +32,9 @@ debug_*.png
 /sample.png
 /sample2.png
 
-# Video recordings
+# Video recordings. The published demo is a tracked release asset.
 *.mp4
+!assets/demo/*.mp4
 
 # Benchmark outputs
 benchmark_chart.png

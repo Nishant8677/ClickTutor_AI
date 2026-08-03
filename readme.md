@@ -4,6 +4,24 @@ An AI-powered visual tutoring tool that watches your screen, understands what yo
 
 ---
 
+## Demo
+
+Press a hotkey, ask a question about whatever is on screen, and ClickTutor
+points at what matters while it explains — step by step.
+
+https://github.com/Nishant8677/ClickTutor_AI/raw/main/assets/demo/clicktutor_demo.mp4
+
+Asking *"How should I approach this problem?"* on a LeetCode page produces a
+four-step lesson. It anchors on the problem statement first, then the
+constraint that rules out naive recursion, then the function signature:
+
+| Step 1 — the sub-problems | Step 4 — the function signature |
+|---|---|
+| ![Highlighting the two choices](assets/demo/screenshot_step1.png) | ![Highlighting the signature](assets/demo/screenshot_step4.png) |
+
+The highlight moves between the problem text and the code panel as the lesson
+progresses. Recorded with `python tools/demo_drive.py`.
+
 ## Features
 
 - **Screen-Aware Lessons** — Captures your screen and generates a structured lesson with OCR-anchored annotations.
