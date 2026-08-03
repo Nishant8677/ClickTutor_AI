@@ -1,14 +1,37 @@
-def validate_lesson_steps(steps):
-    """
-    Validates a list of structured lesson steps.
-    Returns (is_valid, errors_list)
+from typing import Any
+
+# The vocabulary the lesson prompt asks Gemini to use. Exported so the parser
+# can coerce out-of-vocabulary values instead of passing them to the renderer,
+# which would silently treat anything unrecognised as a rectangle.
+VALID_ATTENTIONS = frozenset({"circle", "rectangle", "arrow", "underline", "none"})
+VALID_EMPHASES = frozenset({"high", "medium", "low"})
+
+REQUIRED_STEP_KEYS = (
+    "step",
+    "title",
+    "anchor",
+    "attention",
+    "emphasis",
+    "explanation",
+)
+
+
+def validate_lesson_steps(steps: Any) -> tuple[bool, list[str]]:
+    """Validates a list of structured lesson steps.
+
+    Args:
+        steps: The parsed steps. Deliberately untyped at the boundary because
+            this runs on model-derived data that may be any shape at all.
+
+    Returns:
+        A ``(is_valid, errors)`` pair. ``errors`` is empty when valid.
     """
     if not isinstance(steps, list):
         return False, ["Lesson steps must be a list."]
 
-    errors = []
-    valid_attentions = {"circle", "rectangle", "arrow", "underline", "none"}
-    valid_emphases = {"high", "medium", "low"}
+    errors: list[str] = []
+    valid_attentions = VALID_ATTENTIONS
+    valid_emphases = VALID_EMPHASES
 
     for idx, step in enumerate(steps):
         prefix = f"Step {idx + 1}"
@@ -17,19 +40,23 @@ def validate_lesson_steps(steps):
             continue
 
         # Check required keys
-        for key in ["step", "title", "anchor", "attention", "emphasis", "explanation"]:
+        for key in REQUIRED_STEP_KEYS:
             if key not in step:
                 errors.append(f"{prefix} is missing key: '{key}'.")
 
         # Validate attention type
         attention = step.get("attention")
         if attention and attention not in valid_attentions:
-            errors.append(f"{prefix} has invalid attention: '{attention}'. Must be one of {valid_attentions}.")
+            errors.append(
+                f"{prefix} has invalid attention: '{attention}'. Must be one of {valid_attentions}."
+            )
 
         # Validate emphasis type
         emphasis = step.get("emphasis")
         if emphasis and emphasis not in valid_emphases:
-            errors.append(f"{prefix} has invalid emphasis: '{emphasis}'. Must be one of {valid_emphases}.")
+            errors.append(
+                f"{prefix} has invalid emphasis: '{emphasis}'. Must be one of {valid_emphases}."
+            )
 
         # Validate anchor exists (even if NONE)
         anchor = step.get("anchor")

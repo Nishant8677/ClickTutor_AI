@@ -1,12 +1,18 @@
 import sys
-import os
 from pathlib import Path
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+# Add project root to path. parents[2] because this lives at
+# tools/manual/run_tests.py -- parents[1] is tools/.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from src.chat_tutor import TutorSession
-from src.lesson_validator import validate_lesson_steps
+from src.chat_tutor import TutorSession  # noqa: E402
+from src.console import configure_stdio  # noqa: E402
+from src.lesson_validator import validate_lesson_steps  # noqa: E402
+
+# The status markers below are emoji, which are not representable in the
+# legacy Windows codepage. Without this the script dies on its first print.
+configure_stdio()
+
 
 def run_screenshot_test_suite():
     tests_dir = Path("tests")
@@ -26,7 +32,7 @@ def run_screenshot_test_suite():
     for cat in categories:
         cat_name = cat.name
         image_files = list(cat.glob("*.png")) + list(cat.glob("*.jpg")) + list(cat.glob("*.jpeg"))
-        
+
         if not image_files:
             continue
 
@@ -36,19 +42,19 @@ def run_screenshot_test_suite():
         for img_path in image_files:
             total_tests += 1
             print(f"📸 Testing {img_path.name}...")
-            
+
             try:
                 # 1. Initialize session (forces classification and baseline OCR)
                 session = TutorSession(str(img_path), mode="student")
                 classification = session.screenshot_type
-                
+
                 # 2. Ask test question
                 test_question = "Explain what is on the screen and how to work with it."
                 answer, highlighted_image, lesson_steps = session.ask(test_question)
-                
+
                 # 3. Validate structured steps
                 is_valid, errors = validate_lesson_steps(lesson_steps)
-                
+
                 if is_valid:
                     passed_tests += 1
                     status = "✅ PASS"
@@ -59,25 +65,29 @@ def run_screenshot_test_suite():
                     err_msg = "; ".join(errors)
                     print(f"  └─ Status: {status} (Errors: {err_msg})")
 
-                results.append({
-                    "category": cat_name,
-                    "file": img_path.name,
-                    "classification": classification,
-                    "status": status,
-                    "errors": err_msg
-                })
+                results.append(
+                    {
+                        "category": cat_name,
+                        "file": img_path.name,
+                        "classification": classification,
+                        "status": status,
+                        "errors": err_msg,
+                    }
+                )
 
             except Exception as e:
                 status = "❌ ERROR"
                 err_msg = str(e)
                 print(f"  └─ Status: {status} (Exception: {err_msg})")
-                results.append({
-                    "category": cat_name,
-                    "file": img_path.name,
-                    "classification": "unknown",
-                    "status": status,
-                    "errors": err_msg
-                })
+                results.append(
+                    {
+                        "category": cat_name,
+                        "file": img_path.name,
+                        "classification": "unknown",
+                        "status": status,
+                        "errors": err_msg,
+                    }
+                )
 
     print("\n" + "=" * 50)
     print("📊 TEST SUITE SUMMARY")
@@ -86,12 +96,15 @@ def run_screenshot_test_suite():
     print(f"Passed:      {passed_tests} / {total_tests}")
     print(f"Failed:      {total_tests - passed_tests}")
     print("-" * 50)
-    
+
     for res in results:
-        print(f"[{res['status']}] {res['category']}/{res['file']} -> Class: '{res['classification']}' {res['errors']}")
+        print(
+            f"[{res['status']}] {res['category']}/{res['file']} -> Class: '{res['classification']}' {res['errors']}"
+        )
     print("==================================================")
-    
+
     return passed_tests == total_tests
+
 
 if __name__ == "__main__":
     success = run_screenshot_test_suite()

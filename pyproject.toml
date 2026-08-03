@@ -1,0 +1,60 @@
+[project]
+name = "clicktutor-ai"
+version = "0.3.0"
+description = "An AI tutor that points at what matters on your screen."
+requires-python = ">=3.11"
+
+# Runtime dependencies are pinned in requirements.txt, which is what the
+# README and CI install. They are not duplicated here.
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["clicky_repo", "archive", "venv"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # import sorting
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "SIM",  # simplify
+]
+ignore = [
+    "E501",  # line length is handled by the formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests intentionally assert on private helpers and use fixture shadowing.
+"tests/**" = ["B011"]
+
+[tool.pytest.ini_options]
+# tests/unit holds the real, deterministic suite. The scripts under
+# tools/manual are interactive and are deliberately not collected.
+testpaths = ["tests/unit"]
+pythonpath = ["."]
+addopts = "-q --strict-markers"
+filterwarnings = [
+    # google-generativeai is end-of-life and warns on import. Tracked for
+    # migration to google-genai; silenced here so it does not drown the run.
+    "ignore::FutureWarning:google.generativeai",
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+
+# The codebase is being typed incrementally, starting with the pure,
+# I/O-free core. These modules are held to a stricter standard; the Qt and
+# network layers are checked loosely until they are annotated too.
+[[tool.mypy.overrides]]
+module = [
+    "src.attention.coordinates",
+    "src.lesson_validator",
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true

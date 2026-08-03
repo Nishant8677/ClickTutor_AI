@@ -1,7 +1,9 @@
-import os
 import json
 import logging
+import os
+
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
+
 from src.lesson_engine import parse_lesson_steps
 from src.ocr_locator import extract_ocr_data
 
@@ -49,7 +51,7 @@ class DemoManager(QObject):
                 continue
 
             try:
-                with open(lesson_path, "r", encoding="utf-8") as f:
+                with open(lesson_path, encoding="utf-8") as f:
                     data = json.load(f)
                     demos[entry.name] = data
             except Exception as e:

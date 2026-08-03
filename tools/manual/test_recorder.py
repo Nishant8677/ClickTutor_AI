@@ -1,6 +1,14 @@
 import sys
+from pathlib import Path
+
+# Running this file directly puts tools/manual on sys.path, not the repo
+# root, so "src" would not be importable without this.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+import sys
+
 from PyQt6.QtWidgets import QApplication, QWidget
-from PyQt6.QtGui import QPixmap, QColor
+
 from src.desktop.recorder import Mp4Recorder
 
 app = QApplication(sys.argv)
@@ -18,6 +26,6 @@ recorder.start_recording()
 # Manually trigger a few frames
 for _ in range(5):
     recorder._capture_frame()
-    
+
 recorder.stop_recording("test_output.mp4")
 print("Test completed.")

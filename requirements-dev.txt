@@ -2,3 +2,4 @@
 # Install with: pip install -r requirements-dev.txt
 
 matplotlib  # Used in tools/benchmark.py for chart generation
+pytest==9.1.1  # Unit tests under tests/unit/

@@ -1,40 +1,40 @@
+import logging
 import re
 from pathlib import Path
+
 from PIL import Image
-from src.tutor import model
-from src.ocr_locator import find_text
+
 from src.highlighter import highlight_box
+from src.lesson_validator import (
+    VALID_ATTENTIONS,
+    VALID_EMPHASES,
+    validate_lesson_steps,
+)
+from src.ocr_locator import find_text
+from src.tutor import generate_content, response_text
+
+logger = logging.getLogger(__name__)
 
 STEP_PATTERN = re.compile(
-    r"STEP\s+(\d+)\s*(.*?)(?=\n\s*STEP\s+\d+\s*|\Z)",
-    re.IGNORECASE | re.DOTALL
+    r"STEP\s+(\d+)\s*(.*?)(?=\n\s*STEP\s+\d+\s*|\Z)", re.IGNORECASE | re.DOTALL
 )
 
+
 def get_visible_text(response):
-    match = re.search(
-        r"ANCHOR:\s*(.+)",
-        response,
-        re.IGNORECASE
-    )
+    match = re.search(r"ANCHOR:\s*(.+)", response, re.IGNORECASE)
     if not match:
-        match = re.search(
-            r"VISIBLE TEXT:\s*(.+)",
-            response,
-            re.IGNORECASE
-        )
+        match = re.search(r"VISIBLE TEXT:\s*(.+)", response, re.IGNORECASE)
     if match:
         return match.group(1).strip()
     return None
 
+
 def get_context_text(response):
-    match = re.search(
-        r"CONTEXT:\s*(.+)",
-        response,
-        re.IGNORECASE
-    )
+    match = re.search(r"CONTEXT:\s*(.+)", response, re.IGNORECASE)
     if match:
         return match.group(1).strip()
     return None
+
 
 def extract_section(text, label, next_labels=None):
     labels = next_labels or []
@@ -45,35 +45,70 @@ def extract_section(text, label, next_labels=None):
     else:
         pattern = rf"{re.escape(label)}:\s*(.*)"
 
-    match = re.search(
-        pattern,
-        text,
-        re.IGNORECASE | re.DOTALL
-    )
+    match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
 
     if match:
         return match.group(1).strip()
 
     return ""
 
+
+def _coerce(value, allowed, default, field, step_number):
+    """Maps a model-supplied enum field onto the vocabulary the renderer knows.
+
+    Gemini occasionally answers with a synonym or a whole phrase. Passing that
+    through means the renderer's else-branch silently draws a rectangle, so
+    normalise here and say so in the log.
+    """
+    normalized = (value or "").strip().lower()
+    if normalized in allowed:
+        return normalized
+    if normalized:
+        logger.warning(
+            "Step %s: unrecognised %s %r; falling back to %r.",
+            step_number,
+            field,
+            value,
+            default,
+        )
+    return default
+
+
 def parse_lesson_steps(response):
     steps = []
+    dropped = 0
 
     for match in STEP_PATTERN.finditer(response):
         step_number = int(match.group(1))
         block = match.group(2).strip()
 
-        title = extract_section(block, "TITLE", ["ANCHOR", "CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"])
-        anchor = extract_section(block, "ANCHOR", ["CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"])
+        title = extract_section(
+            block, "TITLE", ["ANCHOR", "CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"]
+        )
+        anchor = extract_section(
+            block, "ANCHOR", ["CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"]
+        )
         if not anchor:
-            anchor = extract_section(block, "VISIBLE TEXT", ["CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"])
-        
+            anchor = extract_section(
+                block, "VISIBLE TEXT", ["CONTEXT", "ATTENTION", "EMPHASIS", "EXPLANATION"]
+            )
+
         context = extract_section(block, "CONTEXT", ["ATTENTION", "EMPHASIS", "EXPLANATION"])
         attention = extract_section(block, "ATTENTION", ["EMPHASIS", "EXPLANATION"])
         emphasis = extract_section(block, "EMPHASIS", ["EXPLANATION"])
         explanation = extract_section(block, "EXPLANATION")
 
         if not explanation:
+            # Dropping a step the model did produce is worth knowing about:
+            # it usually means the prompt drifted or the label was misspelled.
+            # This used to happen silently, so a half-length lesson looked
+            # exactly like a correct one.
+            dropped += 1
+            logger.warning(
+                "Dropping step %s: no EXPLANATION section found in block %r",
+                step_number,
+                block[:120],
+            )
             continue
 
         steps.append(
@@ -82,14 +117,22 @@ def parse_lesson_steps(response):
                 "title": title or f"Step {step_number}",
                 "anchor": anchor or "NONE",
                 "context": None if not context or context.upper() == "NONE" else context,
-                "attention": (attention or "none").lower(),
-                "emphasis": (emphasis or "low").lower(),
+                "attention": _coerce(attention, VALID_ATTENTIONS, "none", "attention", step_number),
+                "emphasis": _coerce(emphasis, VALID_EMPHASES, "low", "emphasis", step_number),
                 "explanation": explanation,
-                "highlighted_image": None
+                "highlighted_image": None,
             }
         )
 
+    if dropped:
+        logger.warning(
+            "Parsed %s lesson step(s); dropped %s malformed block(s).",
+            len(steps),
+            dropped,
+        )
+
     return steps
+
 
 def format_lesson_answer(steps):
     if not steps:
@@ -107,9 +150,10 @@ def format_lesson_answer(steps):
 
     return "\n\n".join(parts)
 
+
 class LessonEngine:
-    def __init__(self, image_path, ocr_data, mode="student", screenshot_type=None):
-        self.image_path = image_path
+    def __init__(self, image_or_path, ocr_data, mode="student", screenshot_type=None):
+        self.image_or_path = image_or_path
         self.ocr_data = ocr_data
         self.mode = mode
         self.screenshot_type = screenshot_type
@@ -171,7 +215,7 @@ For each step, return exactly these fields in order:
 - TITLE: A short, conceptual title for this step (e.g. "Initializing the loop variables" or "Understanding the right-angle triangle").
 - ANCHOR: Pick one visible word, phrase, variable, button, function, line, metric, or label that best anchors that teaching step. Copy the visible text EXACTLY as it appears in the screenshot. It must be short enough for OCR to locate. If no specific element is visible, write NONE.
 - CONTEXT: If the ANCHOR text is not unique on the screen (e.g. the variable name 'count' appears multiple times, like in initialization vs. incrementing), provide the unique surrounding line of text containing the anchor to resolve duplicates (e.g. 'count++' or 'int count = 1;'). If the ANCHOR is unique, write NONE.
-- ATTENTION: Specify the visual layout indicator (choose exactly one of: circle, rectangle, arrow, underline, none).
+- ATTENTION: Specify the visual layout indicator (choose exactly one of: circle, rectangle, underline, none).
 - EMPHASIS: Specify the importance level (choose exactly one of: high, medium, low).
 - EXPLANATION: Your conceptual explanation for this step.
 
@@ -207,7 +251,6 @@ EXPLANATION:
 """
 
     def build_step_highlights(self, steps):
-        image_path = Path(self.image_path)
         highlighted_steps = []
 
         for index, step in enumerate(steps, start=1):
@@ -216,19 +259,14 @@ EXPLANATION:
             highlighted_image = None
 
             if anchor and anchor.strip().upper() != "NONE":
-                box = find_text(
-                    self.ocr_data,
-                    anchor,
-                    context
-                )
+                box = find_text(self.ocr_data, anchor, context)
 
-                if box:
+                if box and isinstance(self.image_or_path, str):
+                    image_path = Path(self.image_or_path)
                     highlighted_image = highlight_box(
-                        self.image_path,
+                        self.image_or_path,
                         box,
-                        image_path.with_name(
-                            f"{image_path.stem}_step_{index}_highlighted.png"
-                        )
+                        image_path.with_name(f"{image_path.stem}_step_{index}_highlighted.png"),
                     )
 
             highlighted_step = dict(step)
@@ -248,14 +286,28 @@ EXPLANATION:
         lesson_steps = []
 
         try:
-            with Image.open(self.image_path) as image:
-                response = model.generate_content([
-                    prompt,
-                    image
-                ])
+            if isinstance(self.image_or_path, str):
+                image = Image.open(self.image_or_path)
+            else:
+                image = self.image_or_path
 
-            answer = response.text
+            response = generate_content([prompt, image])
+
+            answer = response_text(response)
             parsed_steps = parse_lesson_steps(answer)
+
+            # The validator existed but was only ever called from the test
+            # runner, so nothing checked the runtime path. Structural problems
+            # are logged rather than raised: a partially valid lesson is still
+            # more useful to the learner than an error dialog.
+            is_valid, validation_errors = validate_lesson_steps(parsed_steps)
+            if not is_valid:
+                logger.warning(
+                    "Lesson failed validation with %s issue(s): %s",
+                    len(validation_errors),
+                    "; ".join(validation_errors[:5]),
+                )
+
             lesson_steps = self.build_step_highlights(parsed_steps)
 
             if lesson_steps:
@@ -266,22 +318,23 @@ EXPLANATION:
                 context = get_context_text(answer)
 
                 if anchor and anchor.strip().upper() != "NONE":
-                    box = find_text(
-                        self.ocr_data,
-                        anchor,
-                        context
-                    )
+                    box = find_text(self.ocr_data, anchor, context)
 
-                    if box:
+                    # self.image_path was never assigned by __init__, so this
+                    # branch used to raise AttributeError for every input type
+                    # and report it to the user as the lesson text. Guard on
+                    # str the same way build_step_highlights does: highlight_box
+                    # writes a sibling file, which needs a real path.
+                    if box and isinstance(self.image_or_path, str):
+                        source_path = Path(self.image_or_path)
                         highlighted_image = highlight_box(
-                            self.image_path,
+                            self.image_or_path,
                             box,
-                            Path(self.image_path).with_name(
-                                f"{Path(self.image_path).stem}_highlighted.png"
-                            )
+                            source_path.with_name(f"{source_path.stem}_highlighted.png"),
                         )
 
         except Exception as e:
+            logger.exception("Lesson generation failed")
             answer = f"Error: {str(e)}"
             highlighted_image = None
             lesson_steps = []
