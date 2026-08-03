@@ -1,10 +1,35 @@
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPainter, QPixmap
+from PyQt6.QtGui import QImage, QPainter, QPixmap
 from PyQt6.QtWidgets import QApplication, QWidget
 
 from src.attention.animation import AnimationEngine
 from src.attention.coordinates import CoordinateMapper
 from src.attention.renderer import Renderer
+
+
+def _pixmap_from_pil(image) -> QPixmap:
+    """Converts a PIL Image to a QPixmap that owns its pixel data.
+
+    PIL.ImageQt was used here previously. It wraps the PIL image's buffer
+    rather than copying it, so once the local ImageQt object went out of scope
+    the QPixmap referenced freed memory and the process died with an access
+    violation on the next paintEvent — long after the call that caused it.
+
+    Building the QImage from bytes and copying it before the source buffer can
+    be collected keeps ownership unambiguous.
+    """
+    rgba = image.convert("RGBA")
+    buffer = rgba.tobytes("raw", "RGBA")
+    qimage = QImage(
+        buffer,
+        rgba.width,
+        rgba.height,
+        rgba.width * 4,  # explicit stride: QImage otherwise assumes alignment
+        QImage.Format.Format_RGBA8888,
+    )
+    # .copy() forces a deep copy while `buffer` is still alive. Without it the
+    # QPixmap would share the same soon-to-be-freed memory.
+    return QPixmap.fromImage(qimage.copy())
 
 
 class TransparentOverlay(QWidget):
@@ -75,10 +100,7 @@ class TransparentOverlay(QWidget):
             if isinstance(image_or_path, str):
                 self.bg_pixmap = QPixmap(image_or_path)
             else:
-                from PIL.ImageQt import ImageQt
-
-                qimage = ImageQt(image_or_path)
-                self.bg_pixmap = QPixmap.fromImage(qimage)
+                self.bg_pixmap = _pixmap_from_pil(image_or_path)
             # The background defines the coordinate space of anything drawn on
             # top of it, so adopt its size as the source.
             if not self.bg_pixmap.isNull():
