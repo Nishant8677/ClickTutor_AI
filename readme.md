@@ -140,15 +140,21 @@ GEMINI_API_KEY=your_api_key_here
 
 ### Desktop Overlay (Primary Mode)
 ```powershell
-D:\venvs\clicktutor\Scripts\python.exe desktop.py
+.\run.ps1
 ```
+
+`run.ps1` finds the native Windows interpreter for you. Three Python
+installations are usually present — global, the Windows venv, and the WSL venv
+— and only one of them can run the overlay.
 
 You get the transparent overlay plus a small floating companion, and nothing
 else. The developer panel — demo dropdown, MP4 recorder, debug toggle — is
-hidden by default so a recording never has to be cropped around it. To show it:
+hidden by default so a recording never has to be cropped around it.
 
 ```powershell
-D:\venvs\clicktutor\Scripts\python.exe desktop.py --dev
+.\run.ps1 -Dev          # show the developer panel
+.\run.ps1 -Verify       # run the geometry check instead
+.\run.ps1 -Image shot.png   # preload an image for OCR debugging
 ```
 
 > **Run this natively, not from WSL.** Under WSLg, Qt renders into the WSLg

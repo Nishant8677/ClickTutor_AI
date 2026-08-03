@@ -13,15 +13,25 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent
 
 
+# Interpreters that can run the overlay, most preferred first. The D: location
+# keeps Qt's ~100MB of DLLs on a local disk; loading them across the \\wsl$
+# share made startup roughly twelve times slower. Kept in step with run.ps1.
+_WINDOWS_VENVS = (
+    Path(r"D:\venvs\clicktutor\Scripts\python.exe"),
+    Path(r"C:\venvs\clicktutor\Scripts\python.exe"),
+    REPO_ROOT / "venv-win" / "Scripts" / "python.exe",
+)
+
+
 def _venv_hint() -> str:
     """Points at the interpreter that actually has the dependencies."""
-    windows_venv = REPO_ROOT / "venv-win" / "Scripts" / "python.exe"
-    if windows_venv.exists():
-        return f'  "{windows_venv}" desktop.py'
+    for candidate in _WINDOWS_VENVS:
+        if candidate.exists():
+            return f'  .\\run.ps1\n\nor directly:\n  "{candidate}" desktop.py'
     return (
-        "  py -m venv venv-win\n"
-        "  .\\venv-win\\Scripts\\pip install -r requirements.txt\n"
-        "  .\\venv-win\\Scripts\\python.exe desktop.py"
+        "  py -3.11 -m venv D:\\venvs\\clicktutor\n"
+        "  D:\\venvs\\clicktutor\\Scripts\\pip install -r requirements.txt\n"
+        "  .\\run.ps1"
     )
 
 
