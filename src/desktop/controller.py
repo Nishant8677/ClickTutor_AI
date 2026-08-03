@@ -3,7 +3,6 @@ import time
 from contextlib import contextmanager
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QFontMetrics
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -23,7 +22,6 @@ from src.attention.screens import physical_region
 from src.attention.shapes import (
     CircleShape,
     DebugBoxShape,
-    LabelShape,
     RectangleShape,
     UnderlineShape,
 )
@@ -511,25 +509,12 @@ class DesktopController:
                     x=box["left"], y=box["top"], width=box["width"], height=box["height"]
                 )
 
-            label_text = f"Step {step['step']}: {step['title']}"
-            font = QFont("Arial", 16, QFont.Weight.Bold)
-            fm = QFontMetrics(font)
-            text_width = fm.horizontalAdvance(label_text) + 30
-            text_height = fm.height() + 10
-
-            shapes = [
-                shape,
-                LabelShape(
-                    x=box["left"],
-                    y=max(0, box["top"] - text_height - 10),
-                    width=text_width,
-                    height=text_height,
-                    text=label_text,
-                    bg_color="white",
-                    text_color="black",
-                ),
-            ]
-            self.overlay.set_shapes(shapes)
+            # No caption on the overlay. It sat directly above the highlight and
+            # therefore on top of whatever was there -- in a recorded lesson it
+            # covered the sentence the step was teaching. The companion already
+            # shows the step number, title and explanation, so the overlay's job
+            # is only to point.
+            self.overlay.set_shapes([shape])
         else:
             # "NONE" is the model correctly declining to anchor a step that has
             # no on-screen referent, so it is expected rather than a failure.

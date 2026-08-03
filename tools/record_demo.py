@@ -149,6 +149,31 @@ class ScreenRecorder:
             self.error = exc
             logger.exception("Encoding failed")
 
+    def _retime(self, fps: float) -> None:
+        """Rewrites the clip at the frame rate capture actually achieved.
+
+        Only the declared rate is wrong -- the frames themselves are fine --
+        so this re-encodes rather than re-records.
+        """
+        temp = self.output.with_suffix(".retime.mp4")
+        try:
+            reader = imageio.get_reader(self.output)
+            with imageio.get_writer(
+                temp,
+                fps=fps,
+                codec="libx264",
+                quality=7,
+                macro_block_size=None,
+                ffmpeg_params=["-preset", "veryfast"],
+            ) as writer:
+                for frame in reader:
+                    writer.append_data(frame)
+            reader.close()
+            temp.replace(self.output)
+        except Exception:
+            logger.exception("Re-timing failed; keeping the original clip")
+            temp.unlink(missing_ok=True)
+
     def stop(self) -> Path:
         """Stops capture, drains the queue and finalises the file.
 
@@ -172,16 +197,14 @@ class ScreenRecorder:
 
         wall = self._finished_at - self._started_at
         achieved = self.encoded / wall if wall else 0
-        # Playback speed is wrong if capture could not sustain the target rate,
-        # which is the failure that made an early clip run 2.7x fast.
-        if achieved < self.fps * 0.9:
-            logger.warning(
-                "Captured %.1ffps against a %sfps target; playback will look "
-                "%.1fx fast. Lower --fps or --height.",
-                achieved,
-                self.fps,
-                self.fps / achieved if achieved else 0,
-            )
+
+        # The stream was written at the target rate, so if capture ran slower
+        # the clip plays fast: a first take was encoded at 15fps having only
+        # sustained 12.2, and ran 1.2x quick. Re-time it to the rate actually
+        # achieved rather than shipping a clip at the wrong speed.
+        if achieved and achieved < self.fps * 0.97:
+            logger.info("Re-timing to the achieved %.1ffps (target was %s).", achieved, self.fps)
+            self._retime(achieved)
 
         logger.info(
             "Wrote %s (%.1f MB, %s frames, %.1fs wall, %.1ffps achieved)",
