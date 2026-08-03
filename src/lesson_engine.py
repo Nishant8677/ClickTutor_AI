@@ -215,7 +215,7 @@ For each step, return exactly these fields in order:
 - TITLE: A short, conceptual title for this step (e.g. "Initializing the loop variables" or "Understanding the right-angle triangle").
 - ANCHOR: Pick one visible word, phrase, variable, button, function, line, metric, or label that best anchors that teaching step. Copy the visible text EXACTLY as it appears in the screenshot. It must be short enough for OCR to locate. If no specific element is visible, write NONE.
 - CONTEXT: If the ANCHOR text is not unique on the screen (e.g. the variable name 'count' appears multiple times, like in initialization vs. incrementing), provide the unique surrounding line of text containing the anchor to resolve duplicates (e.g. 'count++' or 'int count = 1;'). If the ANCHOR is unique, write NONE.
-- ATTENTION: Specify the visual layout indicator (choose exactly one of: circle, rectangle, arrow, underline, none).
+- ATTENTION: Specify the visual layout indicator (choose exactly one of: circle, rectangle, underline, none).
 - EMPHASIS: Specify the importance level (choose exactly one of: high, medium, low).
 - EXPLANATION: Your conceptual explanation for this step.
 
