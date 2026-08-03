@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import shutil
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,50 @@ logger = logging.getLogger(__name__)
 OCR_SCALE = 3
 MIN_CONFIDENCE = 0
 FUZZY_MATCH_THRESHOLD = 0.82
+
+# Where the common Windows installers put tesseract.exe. The UB Mannheim build
+# does not reliably add itself to PATH, and a process that was already running
+# would not see the change anyway, so fall back to looking for it directly.
+_WINDOWS_TESSERACT_CANDIDATES = (
+    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+    os.path.expandvars(r"%LOCALAPPDATA%\Programs\Tesseract-OCR\tesseract.exe"),
+    os.path.expandvars(r"%LOCALAPPDATA%\Tesseract-OCR\tesseract.exe"),
+)
+
+
+def find_tesseract() -> str | None:
+    """Returns a usable tesseract executable path, or None if there is none.
+
+    Prefers PATH, then falls back to the standard Windows install locations.
+    """
+    on_path = shutil.which("tesseract")
+    if on_path:
+        return on_path
+
+    for candidate in _WINDOWS_TESSERACT_CANDIDATES:
+        if candidate and Path(candidate).is_file():
+            return candidate
+
+    return None
+
+
+def configure_tesseract() -> str | None:
+    """Points pytesseract at the Tesseract binary if it is not already on PATH.
+
+    Returns:
+        The path in use, or None if Tesseract could not be found at all.
+    """
+    located = find_tesseract()
+    if located:
+        pytesseract.pytesseract.tesseract_cmd = located
+        logger.debug("Using Tesseract at %s", located)
+    return located
+
+
+# Resolved once at import: the install location does not change mid-run, and
+# doing it here means every caller benefits without having to remember to.
+configure_tesseract()
 
 # Anything Tesseract can be pointed at: a path, or an already-loaded image.
 ImageSource = str | os.PathLike | Image.Image
