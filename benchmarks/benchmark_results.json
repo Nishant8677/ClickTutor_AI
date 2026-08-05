@@ -1,6 +1,6 @@
 {
     "environment": {
-        "timestamp_utc": "2026-08-05T17:05:56+00:00",
+        "timestamp_utc": "2026-08-05T20:47:20+00:00",
         "os": "Windows 10",
         "machine": "AMD64",
         "python": "3.11.4",
@@ -9,10 +9,10 @@
         "model": "gemini-3.1-flash-lite"
     },
     "accuracy_detail": {
-        "anchors_located": 20,
-        "anchors_total": 20,
+        "anchors_located": 29,
+        "anchors_total": 29,
         "accuracy": 1.0,
-        "images_used": 5,
+        "images_used": 7,
         "images_skipped_no_ocr": [
             "tests\\code\\sample_code.png"
         ],
@@ -37,9 +37,21 @@
             },
             {
                 "image": "tests\\diagrams\\diagram1.png",
-                "steps": 4,
-                "anchored_steps": 4,
-                "located": 4
+                "steps": 5,
+                "anchored_steps": 5,
+                "located": 5
+            },
+            {
+                "image": "tests\\websites\\dev_article.png",
+                "steps": 5,
+                "anchored_steps": 5,
+                "located": 5
+            },
+            {
+                "image": "tests\\websites\\github_profile.png",
+                "steps": 3,
+                "anchored_steps": 3,
+                "located": 3
             },
             {
                 "image": "tests\\websites\\sample_leetcode.png",
