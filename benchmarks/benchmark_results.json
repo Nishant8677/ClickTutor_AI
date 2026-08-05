@@ -1,13 +1,42 @@
 {
-    "environment": {
-        "timestamp_utc": "2026-08-05T20:59:39+00:00",
-        "os": "Windows 10",
-        "machine": "AMD64",
-        "python": "3.11.4",
-        "qt": "6.11.0",
-        "qt_platform": "default",
-        "model": "gemini-3.1-flash-lite"
+    "latency": {
+        "capture_ms": {
+            "n": 10,
+            "avg": 128.1222900026478,
+            "med": 93.06040000228677,
+            "p95": 325.0907599809576,
+            "max": 454.2187999759335
+        },
+        "ocr_ms": {
+            "n": 10,
+            "avg": 2555.0835800007917,
+            "med": 2711.0097000113456,
+            "p95": 3523.263509997923,
+            "max": 3656.1855000036303
+        },
+        "lesson_ms": {
+            "n": 10,
+            "avg": 5926.234570000088,
+            "med": 5822.430100000929,
+            "p95": 7906.5926650029705,
+            "max": 8730.461800005287
+        },
+        "anchor_lookup_ms": {
+            "n": 10,
+            "avg": 7.210040002246387,
+            "med": 7.284500010428019,
+            "p95": 12.812394992215552,
+            "max": 15.474099986022338
+        },
+        "end_to_end_ms": {
+            "n": 10,
+            "avg": 8617.832879998605,
+            "med": 8712.679299991578,
+            "p95": 10886.390474991638,
+            "max": 11813.709299982293
+        }
     },
+    "latency_iterations": 10,
     "accuracy_detail": {
         "anchors_located": 34,
         "anchors_total": 34,
@@ -66,5 +95,23 @@
                 "located": 4
             }
         ]
+    },
+    "accuracy_environment": {
+        "timestamp_utc": "2026-08-05T20:59:39+00:00",
+        "os": "Windows 10",
+        "machine": "AMD64",
+        "python": "3.11.4",
+        "qt": "6.11.0",
+        "qt_platform": "default",
+        "model": "gemini-3.1-flash-lite"
+    },
+    "latency_environment": {
+        "timestamp_utc": "2026-08-05T21:02:44+00:00",
+        "os": "Windows 10",
+        "machine": "AMD64",
+        "python": "3.11.4",
+        "qt": "6.11.0",
+        "qt_platform": "default",
+        "model": "gemini-3.1-flash-lite"
     }
 }

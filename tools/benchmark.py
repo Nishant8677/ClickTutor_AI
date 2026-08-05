@@ -148,10 +148,25 @@ def measure_accuracy(images: list[Path]) -> dict:
     }
 
 
-def measure_latency(iterations: int) -> dict:
-    """Times a full lesson against live screen captures."""
+def measure_latency(iterations: int, prepare_seconds: int = 0) -> dict:
+    """Times a full lesson against live screen captures.
+
+    Whatever is on screen becomes the lesson content, so prepare_seconds
+    gives the operator time to switch to something representative before the
+    first capture.
+    """
     capture_ms, ocr_ms, lesson_ms, lookup_ms, e2e_ms = [], [], [], [], []
     capture_engine = ScreenCapture()
+
+    if prepare_seconds > 0:
+        print(
+            f"\n  Switch to the screen you want measured. First capture in {prepare_seconds}s.\n",
+            flush=True,
+        )
+        for remaining in range(prepare_seconds, 0, -1):
+            print(f"    {remaining}...", end="\r", flush=True)
+            time.sleep(1)
+        print("    measuring now          ", flush=True)
 
     for i in range(iterations):
         logger.info("Latency iteration %s/%s", i + 1, iterations)
@@ -242,22 +257,40 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--latency-iterations", type=int, default=10)
     parser.add_argument("--accuracy-only", action="store_true")
+    parser.add_argument(
+        "--prepare", type=int, default=0, help="seconds to switch screens before the first capture"
+    )
     parser.add_argument("--latency-only", action="store_true")
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(exist_ok=True)
-    results: dict = {"environment": environment()}
+    out = OUTPUT_DIR / "benchmark_results.json"
+
+    # Merge into whatever is already recorded. Latency and accuracy are
+    # measured by separate runs, and an earlier version rewrote the whole file
+    # each time, so running one silently discarded the other's result.
+    results: dict = {}
+    if out.exists():
+        try:
+            results = json.loads(out.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            logger.warning("Existing results file is unreadable; starting fresh")
+
+    # Each section carries the environment it was measured in, since the two
+    # runs can happen on different days or machines.
+    env = environment()
 
     if not args.accuracy_only:
-        results["latency"] = measure_latency(args.latency_iterations)
+        results["latency"] = measure_latency(args.latency_iterations, args.prepare)
         results["latency_iterations"] = args.latency_iterations
+        results["latency_environment"] = env
 
     if not args.latency_only:
         images = corpus_images()
         logger.info("Accuracy corpus: %s images", len(images))
         results["accuracy_detail"] = measure_accuracy(images)
+        results["accuracy_environment"] = env
 
-    out = OUTPUT_DIR / "benchmark_results.json"
     out.write_text(json.dumps(results, indent=4), encoding="utf-8")
     logger.info("Results -> %s", out)
 
