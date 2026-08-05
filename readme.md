@@ -79,18 +79,11 @@ ClickTutor_AI/
 ├── tools/                   # Developer utilities
 │   ├── benchmark.py
 │   └── manual/              # Interactive scripts (not tests)
-├── benchmarks/              # Benchmark results and charts
+├── benchmarks/              # Benchmark results and chart (committed)
 ├── assets/                  # Static assets
+│   ├── demo/                # Demo recording and screenshots
 │   └── test_images/
-├── runtime/                 # Runtime-generated files (gitignored)
-│   ├── captures/
-│   ├── highlights/
-│   ├── recordings/
-│   ├── temp/
-│   └── logs/
 ├── archive/                 # Archived experimental scripts
-├── scripts/                 # Automation scripts (install, build)
-├── docs/                    # Documentation
 │
 ├── app.py                   # Streamlit web app entry point
 ├── desktop.py               # Desktop overlay entry point
@@ -234,7 +227,7 @@ read — several need a display, an API key, or keyboard input. They contain no
 assertions and are not collected by pytest. See `tools/manual/README.md`.
 
 Place test images for `tools/manual/run_tests.py` in `tests/` subdirectories
-organized by category (e.g. `tests/code/`, `tests/math/`).
+organized by category (e.g. `tests/code/`, `tests/websites/`).
 
 ---
 
