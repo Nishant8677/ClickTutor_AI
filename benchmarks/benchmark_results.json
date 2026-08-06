@@ -38,8 +38,8 @@
     },
     "latency_iterations": 10,
     "accuracy_detail": {
-        "anchors_located": 34,
-        "anchors_total": 34,
+        "anchors_located": 33,
+        "anchors_total": 33,
         "accuracy": 1.0,
         "images_used": 8,
         "images_skipped_no_ocr": [
@@ -54,9 +54,9 @@
             },
             {
                 "image": "demo\\rotate_image\\screenshot.png",
-                "steps": 4,
-                "anchored_steps": 4,
-                "located": 4
+                "steps": 3,
+                "anchored_steps": 3,
+                "located": 3
             },
             {
                 "image": "tests\\code\\cpp_remove_duplicates.png",
@@ -66,21 +66,21 @@
             },
             {
                 "image": "tests\\dashboard\\streamlit_chat_ui.png",
+                "steps": 4,
+                "anchored_steps": 4,
+                "located": 4
+            },
+            {
+                "image": "tests\\diagrams\\diagram1.png",
                 "steps": 5,
                 "anchored_steps": 5,
                 "located": 5
             },
             {
-                "image": "tests\\diagrams\\diagram1.png",
-                "steps": 4,
-                "anchored_steps": 4,
-                "located": 4
-            },
-            {
                 "image": "tests\\websites\\dev_article.png",
-                "steps": 4,
-                "anchored_steps": 4,
-                "located": 4
+                "steps": 5,
+                "anchored_steps": 5,
+                "located": 5
             },
             {
                 "image": "tests\\websites\\github_profile.png",
@@ -90,14 +90,14 @@
             },
             {
                 "image": "tests\\websites\\sample_leetcode.png",
-                "steps": 4,
-                "anchored_steps": 4,
-                "located": 4
+                "steps": 3,
+                "anchored_steps": 3,
+                "located": 3
             }
         ]
     },
     "accuracy_environment": {
-        "timestamp_utc": "2026-08-05T20:59:39+00:00",
+        "timestamp_utc": "2026-08-06T06:27:17+00:00",
         "os": "Windows 10",
         "machine": "AMD64",
         "python": "3.11.4",

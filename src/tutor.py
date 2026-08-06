@@ -10,6 +10,12 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
+# google-genai logs "AFC is enabled" and an entry for every HTTP request at
+# INFO, which buries the application's own output and would appear in a demo
+# recording. Warnings and errors still come through.
+for _noisy in ("google_genai", "google_genai.models", "httpx"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
+
 load_dotenv()
 
 MODEL_NAME = "gemini-3.1-flash-lite"
@@ -115,6 +121,11 @@ def generate_content(parts, timeout=REQUEST_TIMEOUT_SECONDS, max_attempts=MAX_AT
             backoff *= 2
 
     logger.error("Gemini call failed after %s attempts.", max_attempts)
+    if last_error is None:
+        # Unreachable: the loop only exits here after a retryable failure.
+        # Raising something concrete beats letting `raise None` surface as a
+        # confusing TypeError if that ever stops being true.
+        raise RuntimeError(f"Gemini call failed after {max_attempts} attempts.")
     raise last_error
 
 
