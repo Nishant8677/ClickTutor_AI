@@ -36,6 +36,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import numpy as np  # noqa: E402
+import pytesseract  # noqa: E402
 
 from src.capture import ScreenCapture  # noqa: E402
 from src.console import configure_stdio  # noqa: E402
@@ -58,13 +59,29 @@ CORPUS_GLOBS = ("demo/*/screenshot.png", "tests/*/*.png")
 
 
 def environment() -> dict:
-    """Records the conditions a result was measured under."""
+    """Records the conditions a result was measured under.
+
+    The SDK is included because latency depends on it and this project has
+    already changed clients once. Without it, two sections of the same results
+    file can come from different SDKs with nothing but timestamps to say so.
+    """
     try:
         from PyQt6.QtCore import QT_VERSION_STR
     except Exception:
         QT_VERSION_STR = "unavailable"
 
     import os
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        sdk = f"google-genai {version('google-genai')}"
+    except PackageNotFoundError:
+        sdk = "google-genai (version unavailable)"
+
+    try:
+        tesseract = str(pytesseract.get_tesseract_version())
+    except Exception:
+        tesseract = "unavailable"
 
     return {
         "timestamp_utc": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -73,6 +90,8 @@ def environment() -> dict:
         "python": platform.python_version(),
         "qt": QT_VERSION_STR,
         "qt_platform": os.environ.get("QT_QPA_PLATFORM", "default"),
+        "sdk": sdk,
+        "tesseract": tesseract,
         "model": MODEL_NAME,
     }
 

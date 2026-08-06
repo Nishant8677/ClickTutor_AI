@@ -2,38 +2,38 @@
     "latency": {
         "capture_ms": {
             "n": 10,
-            "avg": 128.1222900026478,
-            "med": 93.06040000228677,
-            "p95": 325.0907599809576,
-            "max": 454.2187999759335
+            "avg": 80.98151999583934,
+            "med": 77.85194998723455,
+            "p95": 131.9859450130024,
+            "max": 169.90470001474023
         },
         "ocr_ms": {
             "n": 10,
-            "avg": 2555.0835800007917,
-            "med": 2711.0097000113456,
-            "p95": 3523.263509997923,
-            "max": 3656.1855000036303
+            "avg": 4733.8385000039125,
+            "med": 4635.420699996757,
+            "p95": 5407.206749993201,
+            "max": 5616.39149999246
         },
         "lesson_ms": {
             "n": 10,
-            "avg": 5926.234570000088,
-            "med": 5822.430100000929,
-            "p95": 7906.5926650029705,
-            "max": 8730.461800005287
+            "avg": 4893.125800002599,
+            "med": 4919.2774499970255,
+            "p95": 5755.701685001258,
+            "max": 6038.351499999408
         },
         "anchor_lookup_ms": {
             "n": 10,
-            "avg": 7.210040002246387,
-            "med": 7.284500010428019,
-            "p95": 12.812394992215552,
-            "max": 15.474099986022338
+            "avg": 15.195610001683235,
+            "med": 13.860699997167103,
+            "p95": 27.30818500567693,
+            "max": 28.253500000573695
         },
         "end_to_end_ms": {
             "n": 10,
-            "avg": 8617.832879998605,
-            "med": 8712.679299991578,
-            "p95": 10886.390474991638,
-            "max": 11813.709299982293
+            "avg": 9725.33686000097,
+            "med": 9737.186950005707,
+            "p95": 10935.589785008051,
+            "max": 10990.64490001183
         }
     },
     "latency_iterations": 10,
@@ -54,9 +54,9 @@
             },
             {
                 "image": "demo\\rotate_image\\screenshot.png",
-                "steps": 3,
-                "anchored_steps": 3,
-                "located": 3
+                "steps": 4,
+                "anchored_steps": 4,
+                "located": 4
             },
             {
                 "image": "tests\\code\\cpp_remove_duplicates.png",
@@ -78,9 +78,9 @@
             },
             {
                 "image": "tests\\websites\\dev_article.png",
-                "steps": 5,
-                "anchored_steps": 5,
-                "located": 5
+                "steps": 4,
+                "anchored_steps": 4,
+                "located": 4
             },
             {
                 "image": "tests\\websites\\github_profile.png",
@@ -97,21 +97,25 @@
         ]
     },
     "accuracy_environment": {
-        "timestamp_utc": "2026-08-06T06:27:17+00:00",
+        "timestamp_utc": "2026-08-06T06:42:01+00:00",
         "os": "Windows 10",
         "machine": "AMD64",
         "python": "3.11.4",
         "qt": "6.11.0",
         "qt_platform": "default",
+        "sdk": "google-genai 2.17.0",
+        "tesseract": "5.4.0.20240606",
         "model": "gemini-3.1-flash-lite"
     },
     "latency_environment": {
-        "timestamp_utc": "2026-08-05T21:02:44+00:00",
+        "timestamp_utc": "2026-08-06T06:38:07+00:00",
         "os": "Windows 10",
         "machine": "AMD64",
         "python": "3.11.4",
         "qt": "6.11.0",
         "qt_platform": "default",
+        "sdk": "google-genai 2.17.0",
+        "tesseract": "5.4.0.20240606",
         "model": "gemini-3.1-flash-lite"
     }
 }
