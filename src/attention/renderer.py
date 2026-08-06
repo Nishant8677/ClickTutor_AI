@@ -112,6 +112,8 @@ class Renderer:
             self.painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, shape.text)
 
         elif isinstance(shape, DebugBoxShape):
+            if not shape.show_label:
+                return
             color = self._get_color_with_opacity("white", shape.opacity)
             self.painter.setPen(QPen(color))
             self.painter.setFont(QFont("Arial", 8))

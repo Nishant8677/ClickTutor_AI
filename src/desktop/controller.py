@@ -42,6 +42,11 @@ RENDERABLE_ATTENTIONS = frozenset({"circle", "underline", "rectangle", "none"})
 # screenshot.
 COMPOSITOR_SETTLE_SECONDS = 0.08
 
+# OCR confidence below which a debug box also gets a text label. Tesseract
+# scores confident reads in the 90s, so this surfaces the doubtful ones --
+# which is where a missed anchor comes from -- without labelling everything.
+DEBUG_LABEL_CONFIDENCE = 70.0
+
 # Shown when OCR reads nothing at all. ClickTutor locates highlights by
 # searching OCR output, so with no words there is nothing to point at.
 UNREADABLE_SCREEN_MESSAGE = (
@@ -621,8 +626,23 @@ class DesktopController:
                         height=box["height"],
                         text=w["raw_text"],
                         confidence=w["confidence"],
+                        # Labelling every word buried the useful signal: a
+                        # dense screen produced ~300 overlapping labels. The
+                        # low-confidence reads are the ones worth inspecting,
+                        # because those are where a missed anchor comes from.
+                        show_label=w["confidence"] < DEBUG_LABEL_CONFIDENCE,
                     )
                 )
+            labelled = sum(1 for s in shapes if s.show_label)
+            logger.info(
+                "Debug overlay: %s words, %s labelled (confidence < %s)",
+                len(shapes),
+                labelled,
+                DEBUG_LABEL_CONFIDENCE,
+            )
+            self.ui.lbl_status.setText(
+                f"Debug: {len(shapes)} words, {labelled} low-confidence labelled."
+            )
             self.overlay.set_shapes(shapes)
         else:
             self.overlay.set_background(None, show=False)

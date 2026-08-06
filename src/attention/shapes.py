@@ -65,6 +65,10 @@ class LabelShape(AttentionShape):
 class DebugBoxShape(AttentionShape):
     text: str = ""
     confidence: float = 0.0
+    # A dense screen OCRs to hundreds of words, and labelling all of them
+    # overlaps into unreadable noise. The box still marks every word; the text
+    # is reserved for the ones worth reading.
+    show_label: bool = True
 
     def __post_init__(self):
         # Debug boxes shouldn't animate

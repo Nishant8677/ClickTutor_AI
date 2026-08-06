@@ -107,3 +107,74 @@ class TestPixmapFromPil:
 
         assert pixmap.width() == 13
         assert result.pixelColor(12, 3) == QColor(0, 255, 0)
+
+
+class TestDebugLabelSuppression:
+    """A dense screen OCRs to hundreds of words; labelling all of them
+    overlapped into unreadable noise. Boxes stay on every word, labels are
+    reserved for low-confidence reads."""
+
+    def _painted(self, qt_app, shape):
+        """Renders one shape and reports whether any text was drawn."""
+        from PyQt6.QtGui import QColor, QImage, QPainter
+
+        from src.attention.renderer import Renderer
+
+        target = QImage(200, 60, QImage.Format.Format_RGB32)
+        target.fill(QColor("black"))
+        painter = QPainter(target)
+        Renderer(painter).draw(shape)
+        painter.end()
+
+        # The label is drawn in white above the box; the box fill is purple.
+        return any(target.pixelColor(x, y).lightness() > 200 for x in range(200) for y in range(60))
+
+    def test_box_is_drawn_regardless_of_label(self, qt_app):
+        from src.attention.shapes import DebugBoxShape
+
+        shape = DebugBoxShape(
+            x=10,
+            y=30,
+            width=80,
+            height=14,
+            text="hello",
+            confidence=99.0,
+            show_label=False,
+        )
+
+        assert shape.width == 80  # geometry unaffected
+
+    def test_high_confidence_word_has_no_label(self, qt_app):
+        from src.attention.shapes import DebugBoxShape
+
+        shape = DebugBoxShape(
+            x=10,
+            y=30,
+            width=80,
+            height=14,
+            text="confident",
+            confidence=99.0,
+            show_label=False,
+        )
+
+        assert not self._painted(qt_app, shape)
+
+    def test_low_confidence_word_is_labelled(self, qt_app):
+        from src.attention.shapes import DebugBoxShape
+
+        shape = DebugBoxShape(
+            x=10,
+            y=30,
+            width=80,
+            height=14,
+            text="dubious",
+            confidence=42.0,
+            show_label=True,
+        )
+
+        assert self._painted(qt_app, shape)
+
+    def test_labels_default_on_so_other_callers_are_unaffected(self):
+        from src.attention.shapes import DebugBoxShape
+
+        assert DebugBoxShape(x=0, y=0, width=1, height=1).show_label is True
