@@ -1,45 +1,43 @@
-annotated-types==0.7.0
-certifi==2026.6.17
-cffi==2.0.0
-charset-normalizer==3.4.7
-cryptography==49.0.0
-google-api-core==2.31.0
-google-api-python-client==2.197.0
-google-auth==2.55.0
-google-auth-httplib2==0.4.0
+# Direct runtime dependencies only. Transitive packages are deliberately left
+# for pip to resolve.
+#
+# This file used to be `pip freeze` output, which pinned the entire dependency
+# closure of the old google-generativeai SDK. Migrating to google-genai left
+# those orphans behind, and one of them -- google-auth==2.55.0 -- contradicted
+# google-genai's own floor of >=2.56.0, so a clean install could not resolve at
+# all. It kept working locally because the venv was already populated; CI
+# resolves from scratch every run and failed in 20 seconds.
+#
+# Pin what the code imports. Let pip solve the rest.
+
+# Gemini API client (src/tutor.py, src/lesson_engine.py).
 google-genai==2.17.0
-googleapis-common-protos==1.75.0
-grpcio==1.81.1
-grpcio-status==1.71.2
-httplib2==0.31.2
-idna==3.18
-pillow==12.2.0
-proto-plus==1.28.0
-protobuf==5.29.6
-pyasn1==0.6.3
-pyasn1_modules==0.4.2
-pycparser==3.0
-pydantic==2.13.4
-pydantic_core==2.46.4
-pyparsing==3.3.2
+
+# Loads GEMINI_API_KEY from .env (src/tutor.py).
 python-dotenv==1.2.2
-requests==2.34.2
-tqdm==4.68.3
-typing-inspection==0.4.2
-typing_extensions==4.15.0
-uritemplate==4.2.0
-urllib3==2.7.0
+
+# Image handling across capture, OCR and highlighting.
+pillow==12.2.0
+
+# OCR. Also needs the Tesseract binary installed separately -- see readme.
 pytesseract==0.3.13
-streamlit==1.58.0
+
+# Screen capture (src/capture/screen_capture.py, src/desktop/capture.py).
 mss==9.0.1
-imageio==2.36.1
-imageio-ffmpeg==0.5.1
+
+# Frame buffers for the recorder and array maths in the benchmark.
 numpy==2.4.6
 
+# Demo recording (src/desktop/recorder.py, tools/record_demo.py).
+imageio==2.36.1
+imageio-ffmpeg==0.5.1
+
 # Desktop overlay UI. Required by desktop.py and the whole src/attention,
-# src/desktop and src/input layer — the primary run mode.
+# src/desktop and src/input layer -- the primary run mode.
 PyQt6==6.11.0
 
 # Global hotkey capture (src/input/hotkeys.py). Needs root on Linux.
 keyboard==0.13.5
 
+# Browser front-end (app.py). Not needed for the desktop overlay.
+streamlit==1.58.0
