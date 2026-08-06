@@ -2,9 +2,10 @@ import logging
 import os
 import time
 
-import google.generativeai as genai
 from dotenv import load_dotenv
-from google.api_core import exceptions as google_exceptions
+from google import genai
+from google.genai import errors as genai_errors
+from google.genai import types
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -19,15 +20,15 @@ REQUEST_TIMEOUT_SECONDS = 60
 MAX_ATTEMPTS = 3
 INITIAL_BACKOFF_SECONDS = 1.0
 
-# Transient server-side conditions worth a retry. Anything else (bad key,
-# malformed request, safety block) fails immediately -- retrying would just
-# make the user wait longer for the same answer.
-RETRYABLE_ERRORS = (
-    google_exceptions.ServiceUnavailable,
-    google_exceptions.TooManyRequests,
-    google_exceptions.DeadlineExceeded,
-    google_exceptions.InternalServerError,
-)
+# google-genai expresses request timeouts in milliseconds, not seconds. Passing
+# a seconds value straight through would set a 60ms deadline and fail every
+# call, so the conversion is explicit here.
+_MS_PER_SECOND = 1000
+
+# HTTP status codes worth retrying. ServerError already covers 5xx; 429 is a
+# ClientError but is transient, unlike a bad key or a malformed request, where
+# retrying only makes the user wait longer for the same answer.
+RETRYABLE_CLIENT_STATUSES = frozenset({429})
 
 
 class TutorConfigError(RuntimeError):
@@ -38,11 +39,11 @@ class ModelResponseError(RuntimeError):
     """Raised when the model returns nothing usable."""
 
 
-_model = None
+_client = None
 
 
-def get_model():
-    """Returns the shared Gemini model, configuring the client on first use.
+def get_client():
+    """Returns the shared Gemini client, created on first use.
 
     Built lazily so that importing this module does not perform network
     configuration as a side effect, and so a missing key fails here with a
@@ -51,17 +52,25 @@ def get_model():
     Raises:
         TutorConfigError: If GEMINI_API_KEY is not set.
     """
-    global _model
-    if _model is None:
+    global _client
+    if _client is None:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise TutorConfigError(
                 "GEMINI_API_KEY is not set. Copy .env.example to .env and add "
                 "your key from https://aistudio.google.com/apikey"
             )
-        genai.configure(api_key=api_key)
-        _model = genai.GenerativeModel(MODEL_NAME)
-    return _model
+        _client = genai.Client(api_key=api_key)
+    return _client
+
+
+def _is_retryable(exc: Exception) -> bool:
+    """Whether a failed call is worth attempting again."""
+    if isinstance(exc, genai_errors.ServerError):
+        return True
+    if isinstance(exc, genai_errors.ClientError):
+        return getattr(exc, "status_code", None) in RETRYABLE_CLIENT_STATUSES
+    return False
 
 
 def generate_content(parts, timeout=REQUEST_TIMEOUT_SECONDS, max_attempts=MAX_ATTEMPTS):
@@ -77,16 +86,21 @@ def generate_content(parts, timeout=REQUEST_TIMEOUT_SECONDS, max_attempts=MAX_AT
 
     Raises:
         TutorConfigError: If the API key is missing.
-        google.api_core.exceptions.GoogleAPIError: If every attempt failed.
+        google.genai.errors.APIError: If every attempt failed.
     """
-    model = get_model()
+    client = get_client()
+    config = types.GenerateContentConfig(
+        http_options=types.HttpOptions(timeout=int(timeout * _MS_PER_SECOND))
+    )
     backoff = INITIAL_BACKOFF_SECONDS
     last_error = None
 
     for attempt in range(1, max_attempts + 1):
         try:
-            return model.generate_content(parts, request_options={"timeout": timeout})
-        except RETRYABLE_ERRORS as exc:
+            return client.models.generate_content(model=MODEL_NAME, contents=parts, config=config)
+        except Exception as exc:
+            if not _is_retryable(exc):
+                raise
             last_error = exc
             if attempt == max_attempts:
                 break
@@ -107,13 +121,15 @@ def generate_content(parts, timeout=REQUEST_TIMEOUT_SECONDS, max_attempts=MAX_AT
 def response_text(response):
     """Extracts the text of a response, failing loudly when there is none.
 
-    ``response.text`` raises when the candidate list is empty or the answer was
-    safety-blocked. Left unhandled that surfaced to the user as a generic
-    "Error: ..." string indistinguishable from a network fault.
+    ``response.text`` returns None or raises when the candidate list is empty
+    or the answer was safety-blocked. Left unhandled that surfaced to the user
+    as a generic "Error: ..." string indistinguishable from a network fault.
 
     Raises:
         ModelResponseError: If the response carries no usable text.
     """
+    # A blocked prompt never produces candidates, so report that specifically
+    # rather than letting it fall through as "empty response".
     block_reason = getattr(getattr(response, "prompt_feedback", None), "block_reason", None)
     if block_reason:
         raise ModelResponseError(f"The request was blocked by a safety filter ({block_reason}).")
@@ -124,7 +140,14 @@ def response_text(response):
         raise ModelResponseError(f"The model returned no usable content ({exc}).") from exc
 
     if not text or not text.strip():
-        raise ModelResponseError("The model returned an empty response.")
+        # google-genai returns None here where the legacy SDK raised, so an
+        # empty candidate list reaches this branch instead of the one above.
+        finish = None
+        candidates = getattr(response, "candidates", None) or []
+        if candidates:
+            finish = getattr(candidates[0], "finish_reason", None)
+        detail = f" (finish reason: {finish})" if finish else ""
+        raise ModelResponseError(f"The model returned an empty response{detail}.")
     return text
 
 

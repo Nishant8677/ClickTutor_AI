@@ -35,11 +35,7 @@ ignore = [
 testpaths = ["tests/unit"]
 pythonpath = ["."]
 addopts = "-q --strict-markers"
-filterwarnings = [
-    # google-generativeai is end-of-life and warns on import. Tracked for
-    # migration to google-genai; silenced here so it does not drown the run.
-    "ignore::FutureWarning:google.generativeai",
-]
+filterwarnings = ["error::DeprecationWarning:src"]
 
 [tool.mypy]
 python_version = "3.11"
