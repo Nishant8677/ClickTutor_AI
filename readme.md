@@ -204,6 +204,11 @@ pip install -r requirements-dev.txt
 python tools/benchmark.py
 ```
 
+Results land in `benchmarks/benchmark_results.json`, with the environment each
+section was measured in. [docs/anchor-repair.md](docs/anchor-repair.md) explains
+how anchor accuracy reached 100%, what the metric does and does not measure, and
+which numbers here are reproducible.
+
 ---
 
 ## Running Tests
