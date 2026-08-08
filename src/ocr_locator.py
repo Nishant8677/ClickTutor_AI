@@ -215,6 +215,42 @@ def get_line_texts(words: list[Word]) -> dict[tuple, str]:
     return line_texts
 
 
+# Names for the six passes, loosest last. Reported by find_text_detailed so a
+# caller can tell an exact hit from a fuzzy one. Measured on screens OCR reads
+# badly, the loose passes match garbage and return a confident box on the wrong
+# thing; the strict ones do not. See benchmarks/hostile_locator.json.
+PASS_LINE_SUBSTRING = "line_substring"
+PASS_EXACT_PHRASE = "exact_phrase"
+PASS_EXACT_WORD = "exact_word"
+PASS_FUZZY_PHRASE = "fuzzy_phrase"
+PASS_FUZZY_WORD = "fuzzy_word"
+PASS_PARTIAL = "partial"
+
+# Passes that matched the whole target phrase, as opposed to one word out of
+# it. This is the line that predicts correctness, and it is not the line
+# between exact and fuzzy matching, which is what it first looked like.
+#
+# Measured across both benchmark corpora (52 matches, verdicts in
+# benchmarks/locator_comparison.json and benchmarks/hostile_locator.json):
+#
+#     phrase-level passes    40 on target, 0 wrong
+#     word-level passes       0 on target, 9 wrong
+#
+# PASS_EXACT_WORD is the trap. It matches any single word of a multi-word
+# target anywhere on screen, so "Moral: Intelligence is strength" matched one
+# short word and returned an 18x7 pixel box, and "Angle: 45" and "Angle: 90"
+# both matched "angle" and returned the same box. Every one was reported as a
+# successful lookup.
+#
+# PASS_FUZZY_PHRASE is phrase-level by construction but never fired in either
+# corpus, so it is unmeasured and deliberately left out of the trusted set.
+# Excluding it only costs an occasional unnecessary second opinion.
+TRUSTED_PASSES = frozenset({PASS_LINE_SUBSTRING, PASS_EXACT_PHRASE})
+
+# Every pass that matches on a single word rather than the whole phrase.
+WORD_LEVEL_PASSES = frozenset({PASS_EXACT_WORD, PASS_FUZZY_WORD, PASS_PARTIAL})
+
+
 def find_text(
     ocr_data: OcrData,
     target_text: str,
@@ -232,16 +268,37 @@ def find_text(
         A bounding box in image pixels, or None if nothing matched. Coordinates
         are already divided back down by the OCR upscale factor.
     """
+    box, _ = find_text_detailed(ocr_data, target_text, context_text)
+    return box
+
+
+def find_text_detailed(
+    ocr_data: OcrData,
+    target_text: str,
+    context_text: str | None = None,
+) -> tuple[Box | None, str | None]:
+    """Locates text and reports which pass matched it.
+
+    Same search as :func:`find_text`. The difference is that the caller learns
+    *how* the match was made, which matters because the passes are not equally
+    trustworthy: the fuzzy and partial passes will happily match against OCR
+    garbage and return a box on the wrong words, with nothing to distinguish
+    that from a real hit.
+
+    Returns:
+        A tuple of the box and the pass name, or ``(None, None)`` if nothing
+        matched. Pass names are the ``PASS_*`` constants in this module.
+    """
 
     if not target_text:
-        return None
+        return None, None
 
     target_words = [
         normalize(word) for word in re.split(r"[\s\-]+", target_text) if normalize(word)
     ]
 
     if not target_words or target_words == ["none"]:
-        return None
+        return None, None
 
     scale = ocr_data.get("_scale", 1)
     words = build_words(ocr_data)
@@ -304,7 +361,7 @@ def find_text(
                     line_candidates.append(matching_words)
 
         if line_candidates:
-            return select_best(line_candidates)
+            return select_best(line_candidates), PASS_LINE_SUBSTRING
 
     # =====================================
     # PASS 1 : Exact phrase
@@ -322,7 +379,7 @@ def find_text(
                 candidates.append(words[i : i + n])
 
         if candidates:
-            return select_best(candidates)
+            return select_best(candidates), PASS_EXACT_PHRASE
 
     # PASS 2 : Exact word
     candidates = []
@@ -332,7 +389,7 @@ def find_text(
                 candidates.append([w])
 
     if candidates:
-        return select_best(candidates)
+        return select_best(candidates), PASS_EXACT_WORD
 
     # =====================================
     # PASS 3 : Fuzzy phrase
@@ -346,7 +403,7 @@ def find_text(
                 candidates.append(words[i : i + n])
 
         if candidates:
-            return select_best(candidates)
+            return select_best(candidates), PASS_FUZZY_PHRASE
 
     # =====================================
     # PASS 4 : Fuzzy word
@@ -369,7 +426,7 @@ def find_text(
         # Select candidates that match the highest similarity score
         top_score = best_matches[0][0]
         candidates = [item[1] for item in best_matches if item[0] == top_score]
-        return select_best(candidates)
+        return select_best(candidates), PASS_FUZZY_WORD
 
     # PASS 5 : Conservative partial match
     candidates = []
@@ -380,6 +437,6 @@ def find_text(
                 candidates.append([w])
 
     if candidates:
-        return select_best(candidates)
+        return select_best(candidates), PASS_PARTIAL
 
-    return None
+    return None, None
