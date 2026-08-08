@@ -45,6 +45,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from PIL import Image  # noqa: E402
 
+from src import tutor  # noqa: E402
 from src.box_metrics import centre_distance, iou  # noqa: E402
 from src.console import configure_stdio  # noqa: E402
 from src.lesson_engine import LessonEngine  # noqa: E402
@@ -173,6 +174,80 @@ def compare_image(path: Path) -> dict | None:
     }
 
 
+def relocate(per_image: list[dict], model: str, sleep_s: float = RATE_LIMIT_SLEEP_S) -> list[dict]:
+    """Re-runs only the vision locator over a saved run, under a different model.
+
+    Varying the model on a full run would also change the lesson, and therefore
+    the anchors, so two runs would differ in both the thing under test and the
+    thing being tested on. This keeps every anchor exactly as it was and swaps
+    the locator alone.
+
+    Args:
+        per_image: The ``per_image`` block of a saved run.
+        model: Model id to use for the localisation calls.
+
+    Returns:
+        The same structure with vision boxes, timings and scores replaced.
+    """
+    tutor.MODEL_NAME = model
+    for record in per_image:
+        ocr_data = extract_ocr_data(record["image"])
+        image = Image.open(record["image"])
+        for anchor in record["anchors"]:
+            phrase = anchor.get("phrase")
+            if not phrase:
+                continue
+
+            time.sleep(sleep_s)
+            started = time.perf_counter()
+            try:
+                located = locate_phrase(image, phrase)
+            except Exception as exc:
+                # Higher-tier models have much tighter free-tier quotas, so a
+                # long run can die partway. Record the failure, keep the rest,
+                # and let the summary report how many were lost rather than
+                # silently averaging over a shorter list.
+                logger.error("Vision locator failed for %r: %s", phrase, exc)
+                anchor.clear()
+                anchor.update({"phrase": phrase, "skipped": f"vision call failed: {exc}"})
+                continue
+            elapsed_ms = (time.perf_counter() - started) * 1000
+
+            # Drop the previous model's scores rather than letting any survive
+            # into a record that now describes a different model.
+            for key in ("not_located", "raw", "localised", "best_iou", "centre_distance_px"):
+                anchor.pop(key, None)
+
+            anchor.update(
+                {
+                    "vision_box": located.box,
+                    "vision_ms": elapsed_ms,
+                    "prompt_tokens": located.prompt_tokens,
+                    "response_tokens": located.response_tokens,
+                }
+            )
+            if located.box is None:
+                anchor.update(
+                    {
+                        "localised": False,
+                        "best_iou": 0.0,
+                        "not_located": True,
+                        "raw": located.raw[:200],
+                    }
+                )
+            else:
+                anchor.update(score_vision_box(ocr_data, phrase, located.box))
+
+            logger.info(
+                "%s | %r -> localised=%s IoU %.3f",
+                Path(record["image"]).name,
+                phrase[:40],
+                anchor.get("localised"),
+                anchor.get("best_iou", 0.0),
+            )
+    return per_image
+
+
 def rescore(per_image: list[dict]) -> list[dict]:
     """Re-scores a saved run, adding the OCR locator's own boxes to the ledger.
 
@@ -260,11 +335,41 @@ def main() -> int:
         action="store_true",
         help="re-score the saved run without calling the API (OCR is deterministic)",
     )
+    parser.add_argument(
+        "--relocate",
+        metavar="MODEL",
+        help="re-run only the vision locator over the saved anchors, under MODEL",
+    )
+    parser.add_argument(
+        "--in", dest="source", default="locator_comparison.json", help="run to read"
+    )
+    parser.add_argument("--out", default="locator_comparison.json", help="results filename")
+    parser.add_argument(
+        "--sleep",
+        type=float,
+        default=RATE_LIMIT_SLEEP_S,
+        help="seconds between calls; raise it for higher tiers, whose quotas are tighter",
+    )
     args = parser.parse_args()
 
-    out = OUTPUT_DIR / "locator_comparison.json"
+    out = OUTPUT_DIR / args.out
 
-    if args.rescore:
+    if args.relocate:
+        saved = json.loads((OUTPUT_DIR / args.source).read_text(encoding="utf-8"))
+        per_image = saved["per_image"]
+        if args.limit:
+            per_image = per_image[: args.limit]
+        calls = sum(1 for r in per_image for a in r["anchors"] if a.get("phrase"))
+        logger.info(
+            "Re-locating %s anchors over %s images under %s, %.0fs apart (~%.0f min)",
+            calls,
+            len(per_image),
+            args.relocate,
+            args.sleep,
+            calls * (args.sleep + 2) / 60,
+        )
+        per_image = rescore(relocate(per_image, args.relocate, args.sleep))
+    elif args.rescore:
         if not out.exists():
             logger.error("No saved run at %s to re-score.", out)
             return 1

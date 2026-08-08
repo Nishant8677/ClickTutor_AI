@@ -38,11 +38,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import numpy as np  # noqa: E402
 import pytesseract  # noqa: E402
 
+from src import tutor  # noqa: E402
 from src.capture import ScreenCapture  # noqa: E402
 from src.console import configure_stdio  # noqa: E402
 from src.lesson_engine import LessonEngine  # noqa: E402
 from src.ocr_locator import build_words, extract_ocr_data, locate_trusted  # noqa: E402
-from src.tutor import MODEL_NAME  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,10 @@ def environment() -> dict:
         "qt_platform": os.environ.get("QT_QPA_PLATFORM", "default"),
         "sdk": sdk,
         "tesseract": tesseract,
-        "model": MODEL_NAME,
+        # Read through the module, not bound at import: tools can override
+        # the model, and a results file naming the wrong one is worse than
+        # naming none.
+        "model": tutor.MODEL_NAME,
     }
 
 

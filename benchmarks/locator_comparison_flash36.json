@@ -1,0 +1,717 @@
+{
+    "environment": {
+        "timestamp_utc": "2026-08-08T10:05:12+00:00",
+        "os": "Windows 10",
+        "machine": "AMD64",
+        "python": "3.11.4",
+        "qt": "6.11.0",
+        "qt_platform": "default",
+        "sdk": "google-genai 2.17.0",
+        "tesseract": "5.4.0.20240606",
+        "model": "gemini-3.6-flash"
+    },
+    "method": "localised = the OCR words inside the vision box contain the phrase, with at most 2 words beyond it. This needs no reference box. best_iou compares against the closest of all OCR occurrences of the phrase and is only meaningful where OCR placed the phrase correctly.",
+    "max_extra_words": 2,
+    "summary": {
+        "anchors_scored": 18,
+        "anchors_skipped": 16,
+        "localised": 15,
+        "localisation_rate": 0.8333333333333334,
+        "ocr_localised": 17,
+        "ocr_localisation_rate": 0.9444444444444444,
+        "vision_not_located": 0,
+        "ambiguous_phrases": 5,
+        "best_iou": {
+            "n": 18,
+            "avg": 0.5942509917944577,
+            "med": 0.7106991787691546,
+            "p95": 0.9761642444131896,
+            "max": 0.9810126582278481
+        },
+        "iou_at_50": 0.6111111111111112,
+        "iou_at_75": 0.3888888888888889,
+        "centre_distance_px": {
+            "n": 17,
+            "avg": 8.934991977688028,
+            "med": 2.0,
+            "p95": 40.607188054560474,
+            "max": 49.02295380737476
+        },
+        "vision_call_ms": {
+            "n": 18,
+            "avg": 4006.6609499998676,
+            "med": 3760.6888499994966,
+            "p95": 5465.015010000568,
+            "max": 7166.537699999026
+        },
+        "vision_prompt_tokens": {
+            "n": 18,
+            "avg": 1230.888888888889,
+            "med": 1229.0,
+            "p95": 1240.15,
+            "max": 1241.0
+        },
+        "vision_response_tokens": {
+            "n": 18,
+            "avg": 30.833333333333332,
+            "med": 31.0,
+            "p95": 31.0,
+            "max": 31.0
+        },
+        "ocr_path_repair_calls_per_lesson": {
+            "n": 8,
+            "avg": 0.125,
+            "med": 0.0,
+            "p95": 0.6499999999999995,
+            "max": 1.0
+        }
+    },
+    "per_image": [
+        {
+            "image": "demo\\kth_missing\\screenshot.png",
+            "image_size": [
+                1528,
+                864
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "strictly increasing order",
+                    "ocr_box": {
+                        "left": 333,
+                        "top": 197,
+                        "width": 158,
+                        "height": 14
+                    },
+                    "vision_box": {
+                        "left": 332,
+                        "top": 197,
+                        "width": 162,
+                        "height": 14
+                    },
+                    "vision_ms": 4862.6122000005125,
+                    "prompt_tokens": 1236,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 3,
+                    "phrase_word_count": 3,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 3,
+                    "localised": true,
+                    "best_iou": 0.9753086419753086,
+                    "centre_distance_px": 1.0
+                },
+                {
+                    "phrase": "arr",
+                    "ocr_box": {
+                        "left": 1073,
+                        "top": 167,
+                        "width": 25,
+                        "height": 8
+                    },
+                    "vision_box": {
+                        "left": 112,
+                        "top": 197,
+                        "width": 24,
+                        "height": 16
+                    },
+                    "vision_ms": 5164.746300000843,
+                    "prompt_tokens": 1234,
+                    "response_tokens": 29,
+                    "occurrences_in_ocr": 11,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1,
+                    "localised": true,
+                    "best_iou": 0.3828125,
+                    "centre_distance_px": 0.7071067811865476
+                },
+                {
+                    "phrase": "missing",
+                    "ocr_box": {
+                        "left": 256,
+                        "top": 233,
+                        "width": 51,
+                        "height": 15
+                    },
+                    "vision_box": {
+                        "left": 289,
+                        "top": 232,
+                        "width": 62,
+                        "height": 16
+                    },
+                    "vision_ms": 4979.01869999987,
+                    "prompt_tokens": 1234,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 6,
+                    "phrase_present_in_box": false,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1,
+                    "localised": false,
+                    "best_iou": 0.18157363819771352,
+                    "centre_distance_px": 38.50324661635691
+                },
+                {
+                    "phrase": "k",
+                    "ocr_box": {
+                        "left": 865,
+                        "top": 163,
+                        "width": 199,
+                        "height": 12
+                    },
+                    "vision_box": {
+                        "left": 588,
+                        "top": 196,
+                        "width": 19,
+                        "height": 15
+                    },
+                    "vision_ms": 4204.5116999997845,
+                    "prompt_tokens": 1234,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 9,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1,
+                    "localised": true,
+                    "best_iou": 0.37894736842105264,
+                    "centre_distance_px": 1.8027756377319946
+                }
+            ]
+        },
+        {
+            "image": "demo\\rotate_image\\screenshot.png",
+            "image_size": [
+                715,
+                526
+            ],
+            "repair_calls": 1,
+            "anchors": [
+                {
+                    "phrase": "modify the input 2D matrix directly",
+                    "ocr_box": {
+                        "left": 415,
+                        "top": 141,
+                        "width": 217,
+                        "height": 14
+                    },
+                    "vision_box": {
+                        "left": 365,
+                        "top": 141,
+                        "width": 264,
+                        "height": 16
+                    },
+                    "vision_ms": 7166.537699999026,
+                    "prompt_tokens": 1233,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 8,
+                    "phrase_word_count": 6,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 6,
+                    "localised": true,
+                    "best_iou": 0.7022972339428035,
+                    "centre_distance_px": 26.51886121235224
+                },
+                {
+                    "phrase": "matrix",
+                    "ocr_box": {
+                        "left": 188,
+                        "top": 107,
+                        "width": 42,
+                        "height": 9
+                    },
+                    "vision_box": {
+                        "left": 186,
+                        "top": 104,
+                        "width": 48,
+                        "height": 17
+                    },
+                    "vision_ms": 4155.115699999442,
+                    "prompt_tokens": 1226,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 4,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1,
+                    "localised": true,
+                    "best_iou": 0.4632352941176471,
+                    "centre_distance_px": 1.4142135623730951
+                },
+                {
+                    "phrase": "matrix",
+                    "ocr_box": {
+                        "left": 188,
+                        "top": 107,
+                        "width": 42,
+                        "height": 9
+                    },
+                    "vision_box": {
+                        "left": 185,
+                        "top": 104,
+                        "width": 49,
+                        "height": 19
+                    },
+                    "vision_ms": 4161.313700000392,
+                    "prompt_tokens": 1226,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 4,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1,
+                    "localised": true,
+                    "best_iou": 0.40601503759398494,
+                    "centre_distance_px": 2.0615528128088303
+                },
+                {
+                    "phrase": "90 degrees",
+                    "ocr_box": {
+                        "left": 509,
+                        "top": 104,
+                        "width": 68,
+                        "height": 14
+                    },
+                    "vision_box": {
+                        "left": 506,
+                        "top": 103,
+                        "width": 72,
+                        "height": 16
+                    },
+                    "vision_ms": 3741.3164999998116,
+                    "prompt_tokens": 1228,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 2,
+                    "phrase_word_count": 2,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2,
+                    "localised": true,
+                    "best_iou": 0.8263888888888888,
+                    "centre_distance_px": 1.0
+                }
+            ]
+        },
+        {
+            "image": "tests\\code\\cpp_remove_duplicates.png",
+            "image_size": [
+                413,
+                392
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "int count =1;",
+                    "ocr_box": {
+                        "left": 114,
+                        "top": 147,
+                        "width": 90,
+                        "height": 12
+                    },
+                    "vision_box": {
+                        "left": 114,
+                        "top": 146,
+                        "width": 94,
+                        "height": 14
+                    },
+                    "vision_ms": 2992.810300000201,
+                    "prompt_tokens": 1226,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 3,
+                    "phrase_word_count": 3,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 3,
+                    "localised": true,
+                    "best_iou": 0.8206686930091185,
+                    "centre_distance_px": 2.0
+                },
+                {
+                    "phrase": "int idx =1;",
+                    "ocr_box": {
+                        "left": 115,
+                        "top": 165,
+                        "width": 75,
+                        "height": 12
+                    },
+                    "vision_box": {
+                        "left": 115,
+                        "top": 165,
+                        "width": 80,
+                        "height": 14
+                    },
+                    "vision_ms": 3780.0611999991816,
+                    "prompt_tokens": 1226,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 3,
+                    "phrase_word_count": 3,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 3,
+                    "localised": true,
+                    "best_iou": 0.8035714285714286,
+                    "centre_distance_px": 2.692582403567252
+                },
+                {
+                    "phrase": "int temp nums[0];",
+                    "ocr_box": {
+                        "left": 86,
+                        "top": 111,
+                        "width": 19,
+                        "height": 9
+                    },
+                    "vision_box": {
+                        "left": 114,
+                        "top": 180,
+                        "width": 140,
+                        "height": 15
+                    },
+                    "vision_ms": 3259.5911999997043,
+                    "prompt_tokens": 1227,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 0,
+                    "phrase_present_in_box": false,
+                    "words_in_box": 3,
+                    "phrase_word_count": 3,
+                    "ocr_localised": false,
+                    "ocr_words_in_box": 1,
+                    "localised": false,
+                    "best_iou": 0.0,
+                    "centre_distance_px": null
+                },
+                {
+                    "phrase": "if (temp<nums[i]){",
+                    "ocr_box": {
+                        "left": 143,
+                        "top": 218,
+                        "width": 119,
+                        "height": 13
+                    },
+                    "vision_box": {
+                        "left": 140,
+                        "top": 219,
+                        "width": 122,
+                        "height": 13
+                    },
+                    "vision_ms": 3405.386799999178,
+                    "prompt_tokens": 1229,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 2,
+                    "phrase_word_count": 2,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2,
+                    "localised": true,
+                    "best_iou": 0.8375366568914956,
+                    "centre_distance_px": 1.8027756377319946
+                },
+                {
+                    "phrase": "nums[idx++] nums[i];",
+                    "ocr_box": {
+                        "left": 171,
+                        "top": 255,
+                        "width": 155,
+                        "height": 12
+                    },
+                    "vision_box": {
+                        "left": 169,
+                        "top": 255,
+                        "width": 158,
+                        "height": 12
+                    },
+                    "vision_ms": 3337.1114999990823,
+                    "prompt_tokens": 1229,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 2,
+                    "phrase_word_count": 2,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2,
+                    "localised": true,
+                    "best_iou": 0.9810126582278481,
+                    "centre_distance_px": 0.5
+                }
+            ]
+        },
+        {
+            "image": "tests\\dashboard\\streamlit_chat_ui.png",
+            "image_size": [
+                1536,
+                732
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "calibrating",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 5, model: gemini-3.6-flash\\nPlease retry in 1.336507573s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '5'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '1s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "Not questioning extreme values",
+                    "ocr_box": {
+                        "left": 699,
+                        "top": 83,
+                        "width": 168,
+                        "height": 14
+                    },
+                    "vision_box": {
+                        "left": 716,
+                        "top": 83,
+                        "width": 232,
+                        "height": 11
+                    },
+                    "vision_ms": 3122.029800000746,
+                    "prompt_tokens": 1241,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": false,
+                    "words_in_box": 6,
+                    "phrase_word_count": 4,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 4,
+                    "localised": false,
+                    "best_iou": 0.5121800801726796,
+                    "centre_distance_px": 49.02295380737476
+                },
+                {
+                    "phrase": "focus is stable",
+                    "ocr_box": {
+                        "left": 659,
+                        "top": 414,
+                        "width": 72,
+                        "height": 10
+                    },
+                    "vision_box": {
+                        "left": 667,
+                        "top": 414,
+                        "width": 73,
+                        "height": 9
+                    },
+                    "vision_ms": 3232.8066999998555,
+                    "prompt_tokens": 1240,
+                    "response_tokens": 30,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 3,
+                    "phrase_word_count": 3,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 3,
+                    "localised": true,
+                    "best_iou": 0.7191011235955056,
+                    "centre_distance_px": 8.514693182963201
+                },
+                {
+                    "phrase": "person being monitored",
+                    "ocr_box": {
+                        "left": 667,
+                        "top": 333,
+                        "width": 123,
+                        "height": 11
+                    },
+                    "vision_box": {
+                        "left": 668,
+                        "top": 334,
+                        "width": 141,
+                        "height": 9
+                    },
+                    "vision_ms": 3262.285000000702,
+                    "prompt_tokens": 1240,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 4,
+                    "phrase_word_count": 3,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 3,
+                    "localised": true,
+                    "best_iou": 0.7204724409448819,
+                    "centre_distance_px": 10.0
+                }
+            ]
+        },
+        {
+            "image": "tests\\diagrams\\diagram1.png",
+            "image_size": [
+                2098,
+                2125
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "Motherboard",
+                    "ocr_box": {
+                        "left": 722,
+                        "top": 306,
+                        "width": 172,
+                        "height": 24
+                    },
+                    "vision_box": {
+                        "left": 667,
+                        "top": 249,
+                        "width": 279,
+                        "height": 144
+                    },
+                    "vision_ms": 3482.6697999997123,
+                    "prompt_tokens": 1224,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1,
+                    "localised": true,
+                    "best_iou": 0.1027479091995221,
+                    "centre_distance_px": 3.3541019662496847
+                },
+                {
+                    "phrase": "Central",
+                    "ocr_box": {
+                        "left": 928,
+                        "top": 615,
+                        "width": 97,
+                        "height": 30
+                    },
+                    "vision_box": {
+                        "left": 925,
+                        "top": 614,
+                        "width": 103,
+                        "height": 30
+                    },
+                    "vision_ms": 3809.972299999572,
+                    "prompt_tokens": 1223,
+                    "response_tokens": 31,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1,
+                    "localised": true,
+                    "best_iou": 0.8826482585503609,
+                    "centre_distance_px": 1.0
+                },
+                {
+                    "phrase": "Random Access",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 16.116158478s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '16s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "Power Supply",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 5, model: gemini-3.6-flash\\nPlease retry in 11.543245879s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '5'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '11s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "Hard Disk Drive",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 5, model: gemini-3.6-flash\\nPlease retry in 7.028132406s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.6-flash', 'location': 'global'}, 'quotaValue': '5'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '7s'}]}}",
+                    "ocr_localised": false
+                }
+            ]
+        },
+        {
+            "image": "tests\\websites\\dev_article.png",
+            "image_size": [
+                1919,
+                931
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "mentee profile",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 58.766685751s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '58s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "official docs",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 54.081825318s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.6-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '54s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "LitmusChaos",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 49.478137094s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.6-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '49s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "Kubernetes",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 44.803174346s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.6-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '44s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "Create account",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 40.038500417s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '40s'}]}}",
+                    "ocr_localised": false
+                }
+            ]
+        },
+        {
+            "image": "tests\\websites\\github_profile.png",
+            "image_size": [
+                1919,
+                927
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "Overview",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 32.526991524s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '32s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "181 contributions in 2026",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 28.103781072s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.6-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '28s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "Jupyter Notebook",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 23.660114524s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '23s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "Popular repositories",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 19.265468606s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '19s'}]}}",
+                    "ocr_localised": false
+                }
+            ]
+        },
+        {
+            "image": "tests\\websites\\sample_leetcode.png",
+            "image_size": [
+                715,
+                526
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "matrix",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 13.865125736s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '13s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "matrix",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 9.135825903s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.6-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '9s'}]}}",
+                    "ocr_localised": false
+                },
+                {
+                    "phrase": "90 degrees",
+                    "skipped": "vision call failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 4.89566713s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '4s'}]}}",
+                    "ocr_localised": false
+                }
+            ]
+        }
+    ]
+}
