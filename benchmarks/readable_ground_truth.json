@@ -1,0 +1,40 @@
+{
+    "_method": "Phrases transcribed by reading each image directly, not produced by any OCR engine or vision model. The hostile corpus used vision-model-named fragments, which biases toward vision-family readers; this corpus deliberately does not, so the engine comparison on readable screens is independent of both engines under test. Anyone can open the image and check a phrase.",
+    "images": {
+        "tests/code/cpp_remove_duplicates.png": [
+            "int removeDuplicates(vector<int>& nums)",
+            "int n = nums.size();",
+            "return count;"
+        ],
+        "tests/websites/github_profile.png": [
+            "Popular repositories",
+            "Machine Learning based crop recommendation system",
+            "181 contributions in 2026"
+        ],
+        "tests/websites/sample_leetcode.png": [
+            "48. Rotate Image",
+            "modify the input 2D matrix directly",
+            "Input: matrix = [[1,2,3],[4,5,6],[7,8,9]]"
+        ],
+        "tests/websites/dev_article.png": [
+            "How can I participate? and What's your background?",
+            "Applying to be a mentee is less challenging than you might think",
+            "Architect A Personalized Multi-Agent System with Long-Term Memory"
+        ],
+        "tests/dashboard/streamlit_chat_ui.png": [
+            "Chat with ClickTutor",
+            "Upload Screenshot",
+            "Ask a follow-up question..."
+        ],
+        "demo/kth_missing/screenshot.png": [
+            "1539. Kth Missing Positive Number",
+            "Given an array arr of positive integers sorted in a strictly increasing order",
+            "int findKthPositive(vector<int>& arr, int k)"
+        ],
+        "tests/diagrams/diagram1.png": [
+            "PC Components Block Diagram",
+            "Central Processing Unit",
+            "Power Supply Unit"
+        ]
+    }
+}

@@ -1,0 +1,273 @@
+{
+    "environment": {
+        "timestamp_utc": "2026-08-08T11:15:11+00:00",
+        "os": "Linux 6.6.87.2-microsoft-standard-WSL2",
+        "machine": "x86_64",
+        "python": "3.12.3",
+        "qt": "6.11.0",
+        "qt_platform": "default",
+        "sdk": "google-genai 2.17.0",
+        "tesseract": "5.3.4",
+        "model": "gemini-3.1-flash-lite"
+    },
+    "engine": "fal-ai/florence-2-large/ocr-with-region",
+    "ground_truth_source": "benchmarks/readable_ground_truth.json",
+    "method": "Ground truth is the hand-verified fragments from hostile_locator.json. Each engine is scored on how closely its best line matches, so this measures reading quality rather than anchor resolution.",
+    "usable_similarity": 0.8,
+    "summary": {
+        "fragments_scored": 21,
+        "tesseract": {
+            "mean_similarity": 0.8862954699798873,
+            "median_similarity": 0.9855072463768116,
+            "usable": 16,
+            "failed": 0
+        },
+        "florence": {
+            "mean_similarity": 0.9124627323692058,
+            "median_similarity": 1.0,
+            "usable": 18,
+            "failed": 0
+        },
+        "florence_ms": 12778.8493930002
+    },
+    "per_image": [
+        {
+            "image": "tests/code/cpp_remove_duplicates.png",
+            "tesseract_mean_confidence": 83.28260869565217,
+            "tesseract_lines": 20,
+            "florence_regions": 31,
+            "florence_ms": 12756.207320000613,
+            "fragments": [
+                {
+                    "fragment": "int removeDuplicates(vector<int>& nums)",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "int n = nums.size();",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "return count;",
+                    "tesseract": 0.9166666666666666,
+                    "florence": 1.0
+                }
+            ],
+            "tesseract_sample": [
+                "Code",
+                "C++ vy Auto",
+                "class Solution"
+            ],
+            "florence_sample": [
+                "</> Code",
+                "C++ v Auto",
+                "1 class Solution {"
+            ]
+        },
+        {
+            "image": "tests/websites/github_profile.png",
+            "tesseract_mean_confidence": 86.34532374100719,
+            "tesseract_lines": 22,
+            "florence_regions": 53,
+            "florence_ms": 16637.632621999728,
+            "fragments": [
+                {
+                    "fragment": "Popular repositories",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "Machine Learning based crop recommendation system",
+                    "tesseract": 0.7096774193548387,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "181 contributions in 2026",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                }
+            ],
+            "tesseract_sample": [
+                "ww) Platform Solutions Resources OpenSource Enterprise Pricing Q Type (7) to search Sign in",
+                "[0 Overview Repositories 14 [Al Projects Packages YY Stars 13",
+                "Popular repositories"
+            ],
+            "florence_sample": [
+                "Platform Solutions Resources Open Source Enterprise Pricing",
+                "Q Type (7) to search",
+                "Sign in"
+            ]
+        },
+        {
+            "image": "tests/websites/sample_leetcode.png",
+            "tesseract_mean_confidence": 86.8923076923077,
+            "tesseract_lines": 9,
+            "florence_regions": 28,
+            "florence_ms": 6310.625140999036,
+            "fragments": [
+                {
+                    "fragment": "48. Rotate Image",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "modify the input 2D matrix directly",
+                    "tesseract": 0.5607476635514018,
+                    "florence": 0.5263157894736842
+                },
+                {
+                    "fragment": "Input: matrix = [[1,2,3],[4,5,6],[7,8,9]]",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                }
+            ],
+            "tesseract_sample": [
+                "48. Rotate Image",
+                "Medium Topics Companies",
+                "You are given an n x n 2D matrix representing an image, rotate the image by 90 degrees (clockwise)."
+            ],
+            "florence_sample": [
+                "48. Rotate Image",
+                "Medium",
+                "Topics"
+            ]
+        },
+        {
+            "image": "tests/websites/dev_article.png",
+            "tesseract_mean_confidence": 93.81818181818181,
+            "tesseract_lines": 34,
+            "florence_regions": 35,
+            "florence_ms": 11284.609034999448,
+            "fragments": [
+                {
+                    "fragment": "How can I participate? and What's your background?",
+                    "tesseract": 0.9873417721518988,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "Applying to be a mentee is less challenging than you might think",
+                    "tesseract": 0.8833333333333333,
+                    "florence": 0.8833333333333333
+                },
+                {
+                    "fragment": "Architect A Personalized Multi-Agent System with Long-Term Memory",
+                    "tesseract": 0.5641025641025641,
+                    "florence": 0.5641025641025641
+                }
+            ],
+            "tesseract_sample": [
+                "DEV",
+                "3 x",
+                "uD]"
+            ],
+            "florence_sample": [
+                "DEV",
+                "Q Find related posts ...",
+                "Powered by Algolia @"
+            ]
+        },
+        {
+            "image": "tests/dashboard/streamlit_chat_ui.png",
+            "tesseract_mean_confidence": 93.75584415584416,
+            "tesseract_lines": 22,
+            "florence_regions": 24,
+            "florence_ms": 25917.66273900066,
+            "fragments": [
+                {
+                    "fragment": "Chat with ClickTutor",
+                    "tesseract": 0.6666666666666666,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "Upload Screenshot",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "Ask a follow-up question...",
+                    "tesseract": 0.975609756097561,
+                    "florence": 0.9
+                }
+            ],
+            "tesseract_sample": [
+                "Deploy",
+                "Ignoring the \"Calibrating\" state: This is crucial! If a system is still calibrating, its outputs (like the drowsiness metrics) might not be fully accurate or",
+                "Settings reliable yet. It's like judging a chef's meal before they've finished cooking."
+            ],
+            "florence_sample": [
+                "Deploy",
+                "Upgrading the \"CallTutor\" task: This is crucial if this is a system if a system is still calibrating, it outputs like the dowriness metrics might not be fully accurate or",
+                "Settings"
+            ]
+        },
+        {
+            "image": "demo/kth_missing/screenshot.png",
+            "tesseract_mean_confidence": 82.52739726027397,
+            "tesseract_lines": 42,
+            "florence_regions": 40,
+            "florence_ms": 9682.737639001061,
+            "fragments": [
+                {
+                    "fragment": "1539. Kth Missing Positive Number",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "Given an array arr of positive integers sorted in a strictly increasing order",
+                    "tesseract": 0.9154929577464789,
+                    "florence": 0.8857142857142857
+                },
+                {
+                    "fragment": "int findKthPositive(vector<int>& arr, int k)",
+                    "tesseract": 0.9855072463768116,
+                    "florence": 0.7560975609756098
+                }
+            ],
+            "tesseract_sample": [
+                "ProblemList 2X",
+                "Description Editorial Submissions Solutions",
+                "1539. Kth Missing Positive Number"
+            ],
+            "florence_sample": [
+                "Problem List < > >",
+                "88",
+                "# 02:2000 2"
+            ]
+        },
+        {
+            "image": "tests/diagrams/diagram1.png",
+            "tesseract_mean_confidence": 83.2439024390244,
+            "tesseract_lines": 17,
+            "florence_regions": 24,
+            "florence_ms": 6862.471255000855,
+            "fragments": [
+                {
+                    "fragment": "PC Components Block Diagram",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "Central Processing Unit",
+                    "tesseract": 0.8,
+                    "florence": 0.8
+                },
+                {
+                    "fragment": "Power Supply Unit",
+                    "tesseract": 0.6470588235294118,
+                    "florence": 0.8461538461538461
+                }
+            ],
+            "tesseract_sample": [
+                "PERIPHERALS",
+                "Sound Card",
+                "PC Components Block Diagram"
+            ],
+            "florence_sample": [
+                "PC Components Block Diagram",
+                "CORE COMPONENTS",
+                "Motherboard"
+            ]
+        }
+    ]
+}

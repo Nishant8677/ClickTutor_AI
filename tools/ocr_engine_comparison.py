@@ -26,6 +26,7 @@ Writes benchmarks/ocr_engine_comparison.json. Needs FAL_KEY.
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import sys
@@ -146,16 +147,48 @@ def summarise(records: list[dict]) -> dict:
     }
 
 
+def transcribed_fragments(path: Path) -> dict[str, list[str]]:
+    """Loads hand-transcribed ground truth, keyed by image path.
+
+    Used for the readable corpus. The hostile corpus derives its phrases from
+    a vision model, which is fine for comparing two engines against each other
+    but biases the absolute numbers toward vision-family readers. Reading the
+    images and typing what is on them removes that.
+    """
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload["images"]
+
+
 def main() -> int:
     configure_stdio()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    truth = verified_fragments()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--ground-truth",
+        type=Path,
+        help="JSON of hand-transcribed phrases keyed by image path; "
+        "defaults to the hand-scored hostile run",
+    )
+    parser.add_argument("--out", default="ocr_engine_comparison.json", help="results filename")
+    args = parser.parse_args()
+
+    if args.ground_truth:
+        by_path = transcribed_fragments(args.ground_truth)
+        targets = [(Path(key), phrases) for key, phrases in by_path.items()]
+        source = str(args.ground_truth)
+    else:
+        truth = verified_fragments()
+        targets = [(path, truth.get(path.stem, [])) for path in sorted(CORPUS_DIR.glob("*.png"))]
+        source = str(GROUND_TRUTH)
+
     records = []
-    for path in sorted(CORPUS_DIR.glob("*.png")):
-        fragments = truth.get(path.stem, [])
+    for path, fragments in targets:
         if not fragments:
             logger.warning("No verified fragments for %s; skipping", path.name)
+            continue
+        if not path.exists():
+            logger.error("Ground truth names %s, which does not exist", path)
             continue
         try:
             records.append(compare(path, fragments))
@@ -171,6 +204,7 @@ def main() -> int:
     results = {
         "environment": environment(),
         "engine": "fal-ai/florence-2-large/ocr-with-region",
+        "ground_truth_source": source,
         "method": (
             "Ground truth is the hand-verified fragments from "
             "hostile_locator.json. Each engine is scored on how closely its "
@@ -183,7 +217,7 @@ def main() -> int:
     }
 
     OUTPUT_DIR.mkdir(exist_ok=True)
-    out = OUTPUT_DIR / "ocr_engine_comparison.json"
+    out = OUTPUT_DIR / args.out
     out.write_text(json.dumps(results, indent=4), encoding="utf-8")
     logger.info("Results -> %s", out)
 
