@@ -1,0 +1,1069 @@
+{
+    "environment": {
+        "timestamp_utc": "2026-08-08T07:48:13+00:00",
+        "os": "Windows 10",
+        "machine": "AMD64",
+        "python": "3.11.4",
+        "qt": "6.11.0",
+        "qt_platform": "default",
+        "sdk": "google-genai 2.17.0",
+        "tesseract": "5.4.0.20240606",
+        "model": "gemini-3.1-flash-lite"
+    },
+    "method": "localised = the OCR words inside the vision box contain the phrase, with at most 2 words beyond it. This needs no reference box. best_iou compares against the closest of all OCR occurrences of the phrase and is only meaningful where OCR placed the phrase correctly.",
+    "max_extra_words": 2,
+    "summary": {
+        "anchors_scored": 34,
+        "anchors_skipped": 0,
+        "localised": 26,
+        "localisation_rate": 0.7647058823529411,
+        "ocr_localised": 33,
+        "ocr_localisation_rate": 0.9705882352941176,
+        "vision_not_located": 0,
+        "ambiguous_phrases": 11,
+        "best_iou": {
+            "n": 34,
+            "avg": 0.39691622648737074,
+            "med": 0.3942079357540693,
+            "p95": 0.7319901207239335,
+            "max": 0.7951807228915663
+        },
+        "iou_at_50": 0.3235294117647059,
+        "iou_at_75": 0.029411764705882353,
+        "centre_distance_px": {
+            "n": 33,
+            "avg": 16.621602543531043,
+            "med": 8.246211251235321,
+            "p95": 41.679264946717005,
+            "max": 81.42788220259692
+        },
+        "vision_call_ms": {
+            "n": 34,
+            "avg": 1648.6279852940966,
+            "med": 1542.134550000128,
+            "p95": 2215.60690499989,
+            "max": 3342.322499999682
+        },
+        "vision_prompt_tokens": {
+            "n": 34,
+            "avg": 1232.6470588235295,
+            "med": 1233.5,
+            "p95": 1240.35,
+            "max": 1247.0
+        },
+        "vision_response_tokens": {
+            "n": 34,
+            "avg": 25.88235294117647,
+            "med": 26.0,
+            "p95": 26.0,
+            "max": 26.0
+        },
+        "ocr_path_repair_calls_per_lesson": {
+            "n": 8,
+            "avg": 0.125,
+            "med": 0.0,
+            "p95": 0.6499999999999995,
+            "max": 1.0
+        }
+    },
+    "per_image": [
+        {
+            "image": "demo\\kth_missing\\screenshot.png",
+            "image_size": [
+                1528,
+                864
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "strictly increasing order",
+                    "ocr_box": {
+                        "left": 333,
+                        "top": 197,
+                        "width": 158,
+                        "height": 14
+                    },
+                    "vision_box": {
+                        "left": 338,
+                        "top": 193,
+                        "width": 152,
+                        "height": 20
+                    },
+                    "vision_ms": 2177.2978999997576,
+                    "prompt_tokens": 1236,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 3,
+                    "phrase_word_count": 3,
+                    "localised": true,
+                    "best_iou": 0.6811779769526248,
+                    "centre_distance_px": 2.23606797749979,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 3
+                },
+                {
+                    "phrase": "arr",
+                    "ocr_box": {
+                        "left": 1073,
+                        "top": 167,
+                        "width": 25,
+                        "height": 8
+                    },
+                    "vision_box": {
+                        "left": 1079,
+                        "top": 159,
+                        "width": 20,
+                        "height": 16
+                    },
+                    "vision_ms": 1522.8625000004286,
+                    "prompt_tokens": 1234,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 11,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "localised": true,
+                    "best_iou": 0.41304347826086957,
+                    "centre_distance_px": 5.315072906367325,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "missing",
+                    "ocr_box": {
+                        "left": 256,
+                        "top": 233,
+                        "width": 51,
+                        "height": 15
+                    },
+                    "vision_box": {
+                        "left": 174,
+                        "top": 114,
+                        "width": 66,
+                        "height": 19
+                    },
+                    "vision_ms": 1425.2330999997866,
+                    "prompt_tokens": 1234,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 6,
+                    "phrase_present_in_box": false,
+                    "words_in_box": 0,
+                    "phrase_word_count": 1,
+                    "localised": false,
+                    "best_iou": 0.2838174273858921,
+                    "centre_distance_px": 37.0,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "k",
+                    "ocr_box": {
+                        "left": 865,
+                        "top": 163,
+                        "width": 199,
+                        "height": 12
+                    },
+                    "vision_box": {
+                        "left": 1138,
+                        "top": 162,
+                        "width": 11,
+                        "height": 14
+                    },
+                    "vision_ms": 3342.322499999682,
+                    "prompt_tokens": 1234,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 9,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "localised": true,
+                    "best_iou": 0.7951807228915663,
+                    "centre_distance_px": 0.5,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                }
+            ]
+        },
+        {
+            "image": "demo\\rotate_image\\screenshot.png",
+            "image_size": [
+                715,
+                526
+            ],
+            "repair_calls": 1,
+            "anchors": [
+                {
+                    "phrase": "modify the input 2D matrix directly",
+                    "ocr_box": {
+                        "left": 415,
+                        "top": 141,
+                        "width": 217,
+                        "height": 14
+                    },
+                    "vision_box": {
+                        "left": 370,
+                        "top": 140,
+                        "width": 242,
+                        "height": 17
+                    },
+                    "vision_ms": 1404.3909000001804,
+                    "prompt_tokens": 1233,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 8,
+                    "phrase_word_count": 6,
+                    "localised": true,
+                    "best_iou": 0.6276741010468821,
+                    "centre_distance_px": 32.50384592629001,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 6
+                },
+                {
+                    "phrase": "matrix",
+                    "ocr_box": {
+                        "left": 188,
+                        "top": 107,
+                        "width": 42,
+                        "height": 9
+                    },
+                    "vision_box": {
+                        "left": 186,
+                        "top": 104,
+                        "width": 46,
+                        "height": 14
+                    },
+                    "vision_ms": 1224.1085000000567,
+                    "prompt_tokens": 1226,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 4,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "localised": true,
+                    "best_iou": 0.5869565217391305,
+                    "centre_distance_px": 0.5,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "matrix",
+                    "ocr_box": {
+                        "left": 188,
+                        "top": 107,
+                        "width": 42,
+                        "height": 9
+                    },
+                    "vision_box": {
+                        "left": 184,
+                        "top": 102,
+                        "width": 48,
+                        "height": 16
+                    },
+                    "vision_ms": 926.0248000000502,
+                    "prompt_tokens": 1226,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 4,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "localised": true,
+                    "best_iou": 0.4921875,
+                    "centre_distance_px": 1.8027756377319946,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "90 degrees",
+                    "ocr_box": {
+                        "left": 509,
+                        "top": 104,
+                        "width": 68,
+                        "height": 14
+                    },
+                    "vision_box": {
+                        "left": 498,
+                        "top": 102,
+                        "width": 35,
+                        "height": 16
+                    },
+                    "vision_ms": 1229.949999999917,
+                    "prompt_tokens": 1228,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": false,
+                    "words_in_box": 2,
+                    "phrase_word_count": 2,
+                    "localised": false,
+                    "best_iou": 0.2857142857142857,
+                    "centre_distance_px": 27.518175811634027,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                }
+            ]
+        },
+        {
+            "image": "tests\\code\\cpp_remove_duplicates.png",
+            "image_size": [
+                413,
+                392
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "int count =1;",
+                    "ocr_box": {
+                        "left": 114,
+                        "top": 147,
+                        "width": 90,
+                        "height": 12
+                    },
+                    "vision_box": {
+                        "left": 94,
+                        "top": 142,
+                        "width": 60,
+                        "height": 13
+                    },
+                    "vision_ms": 1289.3217000000732,
+                    "prompt_tokens": 1226,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": false,
+                    "words_in_box": 1,
+                    "phrase_word_count": 3,
+                    "localised": false,
+                    "best_iou": 0.2077922077922078,
+                    "centre_distance_px": 35.28809997718778,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 3
+                },
+                {
+                    "phrase": "int idx =1;",
+                    "ocr_box": {
+                        "left": 115,
+                        "top": 165,
+                        "width": 75,
+                        "height": 12
+                    },
+                    "vision_box": {
+                        "left": 116,
+                        "top": 166,
+                        "width": 61,
+                        "height": 12
+                    },
+                    "vision_ms": 1175.529799999822,
+                    "prompt_tokens": 1226,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": false,
+                    "words_in_box": 2,
+                    "phrase_word_count": 3,
+                    "localised": false,
+                    "best_iou": 0.6982310093652445,
+                    "centre_distance_px": 6.082762530298219,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 3
+                },
+                {
+                    "phrase": "int temp nums[0];",
+                    "ocr_box": {
+                        "left": 86,
+                        "top": 111,
+                        "width": 19,
+                        "height": 9
+                    },
+                    "vision_box": {
+                        "left": 115,
+                        "top": 182,
+                        "width": 103,
+                        "height": 12
+                    },
+                    "vision_ms": 1134.0589999999793,
+                    "prompt_tokens": 1227,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 0,
+                    "phrase_present_in_box": false,
+                    "words_in_box": 2,
+                    "phrase_word_count": 3,
+                    "localised": false,
+                    "best_iou": 0.0,
+                    "centre_distance_px": null,
+                    "ocr_localised": false,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "if (temp<nums[i]){",
+                    "ocr_box": {
+                        "left": 143,
+                        "top": 218,
+                        "width": 119,
+                        "height": 13
+                    },
+                    "vision_box": {
+                        "left": 143,
+                        "top": 223,
+                        "width": 75,
+                        "height": 15
+                    },
+                    "vision_ms": 1624.170900000081,
+                    "prompt_tokens": 1229,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 2,
+                    "phrase_word_count": 2,
+                    "localised": true,
+                    "best_iou": 0.28957528957528955,
+                    "centre_distance_px": 22.80350850198276,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                },
+                {
+                    "phrase": "nums[idx++] nums[i];",
+                    "ocr_box": {
+                        "left": 171,
+                        "top": 255,
+                        "width": 155,
+                        "height": 12
+                    },
+                    "vision_box": {
+                        "left": 142,
+                        "top": 241,
+                        "width": 128,
+                        "height": 11
+                    },
+                    "vision_ms": 1509.914299999764,
+                    "prompt_tokens": 1229,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": false,
+                    "words_in_box": 1,
+                    "phrase_word_count": 2,
+                    "localised": false,
+                    "best_iou": 0.0,
+                    "centre_distance_px": 44.90545623863541,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                }
+            ]
+        },
+        {
+            "image": "tests\\dashboard\\streamlit_chat_ui.png",
+            "image_size": [
+                1536,
+                732
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "calibrating",
+                    "ocr_box": {
+                        "left": 1363,
+                        "top": 414,
+                        "width": 56,
+                        "height": 12
+                    },
+                    "vision_box": {
+                        "left": 733,
+                        "top": 47,
+                        "width": 67,
+                        "height": 15
+                    },
+                    "vision_ms": 1678.8762999999562,
+                    "prompt_tokens": 1240,
+                    "response_tokens": 24,
+                    "occurrences_in_ocr": 4,
+                    "phrase_present_in_box": false,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "localised": false,
+                    "best_iou": 0.1648422408242112,
+                    "centre_distance_px": 35.42950747611375,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "Not questioning extreme values",
+                    "ocr_box": {
+                        "left": 699,
+                        "top": 83,
+                        "width": 168,
+                        "height": 14
+                    },
+                    "vision_box": {
+                        "left": 694,
+                        "top": 79,
+                        "width": 188,
+                        "height": 13
+                    },
+                    "vision_ms": 1903.0864999999721,
+                    "prompt_tokens": 1241,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 5,
+                    "phrase_word_count": 4,
+                    "localised": true,
+                    "best_iou": 0.46041412911084045,
+                    "centre_distance_px": 6.726812023536855,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 4
+                },
+                {
+                    "phrase": "focus is stable",
+                    "ocr_box": {
+                        "left": 659,
+                        "top": 414,
+                        "width": 72,
+                        "height": 10
+                    },
+                    "vision_box": {
+                        "left": 608,
+                        "top": 413,
+                        "width": 109,
+                        "height": 13
+                    },
+                    "vision_ms": 1235.1251000000047,
+                    "prompt_tokens": 1240,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 4,
+                    "phrase_word_count": 3,
+                    "localised": true,
+                    "best_iou": 0.3725112395632627,
+                    "centre_distance_px": 32.50384592629001,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 3
+                },
+                {
+                    "phrase": "person being monitored",
+                    "ocr_box": {
+                        "left": 667,
+                        "top": 333,
+                        "width": 123,
+                        "height": 11
+                    },
+                    "vision_box": {
+                        "left": 664,
+                        "top": 332,
+                        "width": 139,
+                        "height": 13
+                    },
+                    "vision_ms": 1247.5365000000238,
+                    "prompt_tokens": 1240,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 4,
+                    "phrase_word_count": 3,
+                    "localised": true,
+                    "best_iou": 0.7487548422800221,
+                    "centre_distance_px": 5.0,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 3
+                }
+            ]
+        },
+        {
+            "image": "tests\\diagrams\\diagram1.png",
+            "image_size": [
+                2098,
+                2125
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "Motherboard",
+                    "ocr_box": {
+                        "left": 722,
+                        "top": 306,
+                        "width": 172,
+                        "height": 24
+                    },
+                    "vision_box": {
+                        "left": 669,
+                        "top": 249,
+                        "width": 275,
+                        "height": 142
+                    },
+                    "vision_ms": 2286.7522000001372,
+                    "prompt_tokens": 1224,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "localised": true,
+                    "best_iou": 0.10571062740076824,
+                    "centre_distance_px": 2.5,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "Central",
+                    "ocr_box": {
+                        "left": 928,
+                        "top": 615,
+                        "width": 97,
+                        "height": 30
+                    },
+                    "vision_box": {
+                        "left": 864,
+                        "top": 610,
+                        "width": 221,
+                        "height": 36
+                    },
+                    "vision_ms": 1972.0398999997997,
+                    "prompt_tokens": 1223,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "localised": true,
+                    "best_iou": 0.36576168929110103,
+                    "centre_distance_px": 2.8284271247461903,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "Random Access",
+                    "ocr_box": {
+                        "left": 1193,
+                        "top": 616,
+                        "width": 222,
+                        "height": 25
+                    },
+                    "vision_box": {
+                        "left": 1162,
+                        "top": 578,
+                        "width": 279,
+                        "height": 147
+                    },
+                    "vision_ms": 1890.5146000001878,
+                    "prompt_tokens": 1224,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 3,
+                    "phrase_word_count": 2,
+                    "localised": true,
+                    "best_iou": 0.13532294638285422,
+                    "centre_distance_px": 23.13547060251855,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                },
+                {
+                    "phrase": "Power Supply",
+                    "ocr_box": {
+                        "left": 1507,
+                        "top": 1119,
+                        "width": 186,
+                        "height": 31
+                    },
+                    "vision_box": {
+                        "left": 1456,
+                        "top": 1071,
+                        "width": 281,
+                        "height": 157
+                    },
+                    "vision_ms": 2057.3934000003646,
+                    "prompt_tokens": 1224,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 3,
+                    "phrase_word_count": 2,
+                    "localised": true,
+                    "best_iou": 0.13069791690278124,
+                    "centre_distance_px": 15.402921800749363,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                },
+                {
+                    "phrase": "Hard Disk Drive",
+                    "ocr_box": {
+                        "left": 1428,
+                        "top": 1836,
+                        "width": 212,
+                        "height": 24
+                    },
+                    "vision_box": {
+                        "left": 1395,
+                        "top": 1779,
+                        "width": 275,
+                        "height": 144
+                    },
+                    "vision_ms": 1903.0641999997897,
+                    "prompt_tokens": 1225,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 3,
+                    "phrase_word_count": 3,
+                    "localised": true,
+                    "best_iou": 0.12848484848484848,
+                    "centre_distance_px": 3.3541019662496847,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 3
+                }
+            ]
+        },
+        {
+            "image": "tests\\websites\\dev_article.png",
+            "image_size": [
+                1919,
+                931
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "mentee profile",
+                    "ocr_box": {
+                        "left": 437,
+                        "top": 207,
+                        "width": 159,
+                        "height": 25
+                    },
+                    "vision_box": {
+                        "left": 507,
+                        "top": 175,
+                        "width": 170,
+                        "height": 28
+                    },
+                    "vision_ms": 2060.574600000109,
+                    "prompt_tokens": 1240,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": false,
+                    "words_in_box": 3,
+                    "phrase_word_count": 2,
+                    "localised": false,
+                    "best_iou": 0.0,
+                    "centre_distance_px": 81.42788220259692,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                },
+                {
+                    "phrase": "official docs",
+                    "ocr_box": {
+                        "left": 628,
+                        "top": 244,
+                        "width": 134,
+                        "height": 19
+                    },
+                    "vision_box": {
+                        "left": 626,
+                        "top": 239,
+                        "width": 134,
+                        "height": 31
+                    },
+                    "vision_ms": 1957.0588000001408,
+                    "prompt_tokens": 1239,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 2,
+                    "phrase_word_count": 2,
+                    "localised": true,
+                    "best_iou": 0.5982824427480916,
+                    "centre_distance_px": 2.23606797749979,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                },
+                {
+                    "phrase": "LitmusChaos",
+                    "ocr_box": {
+                        "left": 358,
+                        "top": 588,
+                        "width": 98,
+                        "height": 13
+                    },
+                    "vision_box": {
+                        "left": 286,
+                        "top": 276,
+                        "width": 173,
+                        "height": 36
+                    },
+                    "vision_ms": 1561.4065999998274,
+                    "prompt_tokens": 1240,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 3,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "localised": true,
+                    "best_iou": 0.41795118818240207,
+                    "centre_distance_px": 14.221462653327892,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                },
+                {
+                    "phrase": "Kubernetes",
+                    "ocr_box": {
+                        "left": 596,
+                        "top": 457,
+                        "width": 121,
+                        "height": 19
+                    },
+                    "vision_box": {
+                        "left": 591,
+                        "top": 452,
+                        "width": 169,
+                        "height": 29
+                    },
+                    "vision_ms": 1886.5356999999676,
+                    "prompt_tokens": 1239,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 2,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 2,
+                    "phrase_word_count": 1,
+                    "localised": true,
+                    "best_iou": 0.46908794123648234,
+                    "centre_distance_px": 19.0,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "Create account",
+                    "ocr_box": {
+                        "left": 1628,
+                        "top": 32,
+                        "width": 135,
+                        "height": 14
+                    },
+                    "vision_box": {
+                        "left": 1647,
+                        "top": 12,
+                        "width": 176,
+                        "height": 51
+                    },
+                    "vision_ms": 1516.889099999844,
+                    "prompt_tokens": 1239,
+                    "response_tokens": 24,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 2,
+                    "phrase_word_count": 2,
+                    "localised": true,
+                    "best_iou": 0.1757195412248431,
+                    "centre_distance_px": 39.528470752104745,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                }
+            ]
+        },
+        {
+            "image": "tests\\websites\\github_profile.png",
+            "image_size": [
+                1919,
+                927
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "Overview",
+                    "ocr_box": {
+                        "left": 651,
+                        "top": 141,
+                        "width": 75,
+                        "height": 14
+                    },
+                    "vision_box": {
+                        "left": 608,
+                        "top": 135,
+                        "width": 117,
+                        "height": 27
+                    },
+                    "vision_ms": 1463.5855999999876,
+                    "prompt_tokens": 1238,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 2,
+                    "phrase_word_count": 1,
+                    "localised": true,
+                    "best_iou": 0.32650488496690827,
+                    "centre_distance_px": 22.005681084665387,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "181 contributions in 2026",
+                    "ocr_box": {
+                        "left": 592,
+                        "top": 804,
+                        "width": 223,
+                        "height": 15
+                    },
+                    "vision_box": {
+                        "left": 589,
+                        "top": 799,
+                        "width": 227,
+                        "height": 24
+                    },
+                    "vision_ms": 1284.259099999872,
+                    "prompt_tokens": 1247,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 4,
+                    "phrase_word_count": 4,
+                    "localised": true,
+                    "best_iou": 0.6139867841409692,
+                    "centre_distance_px": 1.118033988749895,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 4
+                },
+                {
+                    "phrase": "Jupyter Notebook",
+                    "ocr_box": {
+                        "left": 1182,
+                        "top": 354,
+                        "width": 137,
+                        "height": 16
+                    },
+                    "vision_box": {
+                        "left": 1197,
+                        "top": 350,
+                        "width": 123,
+                        "height": 20
+                    },
+                    "vision_ms": 2059.4466000002285,
+                    "prompt_tokens": 1240,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 2,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 2,
+                    "phrase_word_count": 2,
+                    "localised": true,
+                    "best_iou": 0.7229629629629629,
+                    "centre_distance_px": 8.246211251235321,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                },
+                {
+                    "phrase": "Popular repositories",
+                    "ocr_box": {
+                        "left": 592,
+                        "top": 217,
+                        "width": 174,
+                        "height": 20
+                    },
+                    "vision_box": {
+                        "left": 589,
+                        "top": 211,
+                        "width": 179,
+                        "height": 27
+                    },
+                    "vision_ms": 1374.8602999999093,
+                    "prompt_tokens": 1239,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 2,
+                    "phrase_word_count": 2,
+                    "localised": true,
+                    "best_iou": 0.7200496585971446,
+                    "centre_distance_px": 2.5495097567963922,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                }
+            ]
+        },
+        {
+            "image": "tests\\websites\\sample_leetcode.png",
+            "image_size": [
+                715,
+                526
+            ],
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "matrix",
+                    "ocr_box": {
+                        "left": 188,
+                        "top": 107,
+                        "width": 42,
+                        "height": 9
+                    },
+                    "vision_box": {
+                        "left": 184,
+                        "top": 102,
+                        "width": 48,
+                        "height": 16
+                    },
+                    "vision_ms": 1634.1956999999638,
+                    "prompt_tokens": 1226,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 4,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "localised": true,
+                    "best_iou": 0.4921875,
+                    "centre_distance_px": 1.8027756377319946,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "matrix",
+                    "ocr_box": {
+                        "left": 543,
+                        "top": 142,
+                        "width": 38,
+                        "height": 10
+                    },
+                    "vision_box": {
+                        "left": 182,
+                        "top": 102,
+                        "width": 53,
+                        "height": 19
+                    },
+                    "vision_ms": 1861.5179999997054,
+                    "prompt_tokens": 1226,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 4,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 1,
+                    "phrase_word_count": 1,
+                    "localised": true,
+                    "best_iou": 0.3753723932472691,
+                    "centre_distance_px": 0.5,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 1
+                },
+                {
+                    "phrase": "90 degrees",
+                    "ocr_box": {
+                        "left": 509,
+                        "top": 104,
+                        "width": 68,
+                        "height": 14
+                    },
+                    "vision_box": {
+                        "left": 499,
+                        "top": 102,
+                        "width": 63,
+                        "height": 16
+                    },
+                    "vision_ms": 1233.4467999999106,
+                    "prompt_tokens": 1228,
+                    "response_tokens": 26,
+                    "occurrences_in_ocr": 1,
+                    "phrase_present_in_box": true,
+                    "words_in_box": 2,
+                    "phrase_word_count": 2,
+                    "localised": true,
+                    "best_iou": 0.6091954022988506,
+                    "centre_distance_px": 12.539936203984453,
+                    "ocr_localised": true,
+                    "ocr_words_in_box": 2
+                }
+            ]
+        }
+    ]
+}

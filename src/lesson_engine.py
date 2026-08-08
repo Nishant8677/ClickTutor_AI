@@ -181,6 +181,11 @@ class LessonEngine:
         self.ocr_data = ocr_data
         self.mode = mode
         self.screenshot_type = screenshot_type
+        # Corrective calls made by the most recent repair_anchors() run. Read by
+        # tools/benchmark.py: the cost of the OCR path is often quoted as "two
+        # API calls per lesson", but repair only fires on a miss and nothing
+        # measured how often that was.
+        self.last_repair_attempts = 0
 
     def visible_text_block(self, max_lines=MAX_VISIBLE_LINES, max_chars=MAX_VISIBLE_CHARS):
         """Renders the OCR lines for inclusion in the prompt.
@@ -358,6 +363,7 @@ EXPLANATION:
         Returns:
             The steps, with unresolvable anchors replaced where possible.
         """
+        self.last_repair_attempts = 0
         visible = self.visible_text_block()
         if not visible:
             return steps
@@ -400,6 +406,7 @@ EXPLANATION:
                 )
                 repaired.append(step)
 
+        self.last_repair_attempts = attempts
         return repaired
 
     def generate_lesson(self, question, history, explanation_text):

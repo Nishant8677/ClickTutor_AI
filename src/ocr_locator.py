@@ -113,6 +113,11 @@ def extract_ocr_data(image_or_path: ImageSource) -> OcrData:
         OSError: If a path was given and the file cannot be read.
         pytesseract.TesseractNotFoundError: If the Tesseract binary is missing.
     """
+    # Annotated because Image.open returns an ImageFile, and the conversions
+    # below rebind this to a plain Image. Without it every reassignment reads
+    # as a type error.
+    image: Image.Image
+
     # os.PathLike was previously not handled: a pathlib.Path fell through to
     # the else-branch and died on .copy().
     if isinstance(image_or_path, (str, os.PathLike)):
@@ -268,7 +273,7 @@ def find_text(
     # =====================================
     norm_target = normalize(target_text)
     if norm_target:
-        line_groups = {}
+        line_groups: dict[tuple, list[Word]] = {}
         for w in words:
             lid = w["line_id"]
             if lid not in line_groups:

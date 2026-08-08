@@ -37,7 +37,9 @@ jobs:
         run: ruff check .
 
       - name: Mypy (incrementally typed modules)
-        run: mypy src/attention/coordinates.py src/lesson_validator.py
+        run: >
+          mypy src/attention/coordinates.py src/lesson_validator.py
+          src/box_metrics.py src/ocr_occurrences.py
 
       - name: Pytest
         # No display on the runner; Qt uses its offscreen platform plugin.
