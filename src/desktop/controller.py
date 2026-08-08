@@ -29,8 +29,14 @@ from src.desktop.companion import FloatingCompanion
 from src.input import InputAction, InputManager, TutorState
 from src.locator import OcrLocator
 from src.ocr_locator import build_words, extract_ocr_data
+from src.vision_locator import locate_phrase
 
 logger = logging.getLogger(__name__)
+
+# The second opinion asked for when OCR cannot place an anchor as a phrase.
+# Named here rather than passed down from main so the desktop path has one
+# obvious place to disable it; set to None to run OCR-only.
+VISION_LOCATOR = locate_phrase
 
 # Attention types the renderer can actually draw. The prompt and the validator
 # both also permit "arrow", but relationship arrows are deferred to Phase 4, so
@@ -77,16 +83,20 @@ class LessonWorker(QThread):
             # the UI, and it has to finish before Gemini can be called anyway.
             ocr_data = extract_ocr_data(self.image)
 
-            # A screen Tesseract cannot read produces a lesson in which no step
-            # can ever be highlighted. Measured on a maths image: zero OCR
-            # words, and every anchor missed. Fail here rather than spend an
-            # API call producing a lesson that silently points at nothing.
-            if not build_words(ocr_data):
+            # A screen Tesseract cannot read used to be a dead end: no OCR
+            # words meant no anchor could ever resolve, so generating a lesson
+            # only bought an explanation pointing at nothing.
+            #
+            # That is no longer true. The vision locator reads handwriting,
+            # rotated labels and photographed pages that Tesseract cannot --
+            # 23 of 24 targets on the hostile corpus, against OCR's 7. So bail
+            # only when there is no fallback to bail to.
+            if not build_words(ocr_data) and VISION_LOCATOR is None:
                 logger.warning("OCR produced no usable words; skipping lesson generation.")
                 self.error.emit(UNREADABLE_SCREEN_MESSAGE)
                 return
 
-            engine = LessonEngine(self.image, ocr_data)
+            engine = LessonEngine(self.image, ocr_data, vision_locator=VISION_LOCATOR)
             answer, _, steps = engine.generate_lesson(self.question, [], "")
             self.lesson_ready.emit(ocr_data, steps, answer)
         except Exception as e:

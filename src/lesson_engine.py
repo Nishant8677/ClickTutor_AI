@@ -10,7 +10,7 @@ from src.lesson_validator import (
     VALID_EMPHASES,
     validate_lesson_steps,
 )
-from src.ocr_locator import build_words, find_text, get_line_texts
+from src.ocr_locator import build_words, get_line_texts, locate_trusted
 from src.tutor import generate_content, response_text
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,12 @@ MAX_VISIBLE_CHARS = 4000
 # Corrective calls allowed per lesson. Each costs one round trip, so this
 # bounds the worst case rather than letting a poorly-read screen fan out.
 MAX_ANCHOR_REPAIRS = 3
+
+# Vision-locator calls allowed per lesson, for anchors that survive repair and
+# still cannot be located as a phrase. Bounded for the same reason, and lower:
+# by this point OCR has already said it cannot read the region, so a screen
+# that trips it once will usually trip it repeatedly.
+MAX_VISION_FALLBACKS = 2
 
 
 def _repair_prompt(anchor, step, visible_text):
@@ -176,11 +182,23 @@ def format_lesson_answer(steps):
 
 
 class LessonEngine:
-    def __init__(self, image_or_path, ocr_data, mode="student", screenshot_type=None):
+    def __init__(
+        self,
+        image_or_path,
+        ocr_data,
+        mode="student",
+        screenshot_type=None,
+        vision_locator=None,
+    ):
         self.image_or_path = image_or_path
         self.ocr_data = ocr_data
         self.mode = mode
         self.screenshot_type = screenshot_type
+        # Injected so it can be turned off. Tests and the accuracy benchmark
+        # need the OCR path measured on its own, and passing None keeps the
+        # engine free of network calls entirely.
+        self._vision_locator = vision_locator
+        self._vision_fallbacks = 0
         # Corrective calls made by the most recent repair_anchors() run. Read by
         # tools/benchmark.py: the cost of the OCR path is often quoted as "two
         # API calls per lesson", but repair only fires on a miss and nothing
@@ -316,8 +334,50 @@ EXPLANATION:
 ...
 """
 
+    def _locate(self, anchor, context):
+        """Finds an anchor, asking the vision locator only if OCR cannot.
+
+        OCR is tried first because it is already computed, costs nothing more,
+        and on readable screens it is both more accurate and tighter than the
+        alternative. It is trusted only on a whole-phrase match: a single-word
+        match was wrong every time it occurred across both benchmark corpora.
+
+        The vision locator is the opposite trade -- a network round trip, but it
+        reads handwriting, rotated labels and photographs that Tesseract cannot.
+        It is asked only when OCR has declined, and at most MAX_VISION_FALLBACKS
+        times per lesson.
+
+        Returns:
+            A box in image pixels, or None if neither locator could place it.
+        """
+        box = locate_trusted(self.ocr_data, anchor, context)
+        if box or self._vision_locator is None:
+            return box
+
+        if self._vision_fallbacks >= MAX_VISION_FALLBACKS:
+            logger.debug("Vision fallback budget spent; leaving %r unhighlighted", anchor)
+            return None
+
+        image = self.image_or_path
+        if isinstance(image, str):
+            image = Image.open(image)
+
+        self._vision_fallbacks += 1
+        try:
+            located = self._vision_locator(image, anchor)
+        except Exception as exc:
+            # A failed fallback must not take the lesson with it: the step
+            # simply renders without a highlight, as it would have anyway.
+            logger.warning("Vision fallback failed for %r: %s", anchor, exc)
+            return None
+
+        if located.box:
+            logger.info("Located %r by vision after OCR declined", anchor)
+        return located.box
+
     def build_step_highlights(self, steps):
         highlighted_steps = []
+        self._vision_fallbacks = 0
 
         for index, step in enumerate(steps, start=1):
             anchor = step.get("anchor", "")
@@ -325,7 +385,7 @@ EXPLANATION:
             highlighted_image = None
 
             if anchor and anchor.strip().upper() != "NONE":
-                box = find_text(self.ocr_data, anchor, context)
+                box = self._locate(anchor, context)
 
                 if box and isinstance(self.image_or_path, str):
                     image_path = Path(self.image_or_path)
@@ -371,7 +431,7 @@ EXPLANATION:
         repaired, attempts = [], 0
         for step in steps:
             anchor = step.get("anchor", "")
-            resolvable = anchor.strip().upper() == "NONE" or find_text(
+            resolvable = anchor.strip().upper() == "NONE" or locate_trusted(
                 self.ocr_data, anchor, step.get("context")
             )
             if resolvable or attempts >= max_repairs:
@@ -391,7 +451,7 @@ EXPLANATION:
                 repaired.append(step)
                 continue
 
-            if replacement and find_text(self.ocr_data, replacement, None):
+            if replacement and locate_trusted(self.ocr_data, replacement, None):
                 logger.info("Repaired anchor %r -> %r", anchor, replacement)
                 fixed = dict(step)
                 fixed["anchor"] = replacement
@@ -456,7 +516,7 @@ EXPLANATION:
                 context = get_context_text(answer)
 
                 if anchor and anchor.strip().upper() != "NONE":
-                    box = find_text(self.ocr_data, anchor, context)
+                    box = self._locate(anchor, context)
 
                     # self.image_path was never assigned by __init__, so this
                     # branch used to raise AttributeError for every input type

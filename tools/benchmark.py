@@ -41,7 +41,7 @@ import pytesseract  # noqa: E402
 from src.capture import ScreenCapture  # noqa: E402
 from src.console import configure_stdio  # noqa: E402
 from src.lesson_engine import LessonEngine  # noqa: E402
-from src.ocr_locator import build_words, extract_ocr_data, find_text  # noqa: E402
+from src.ocr_locator import build_words, extract_ocr_data, locate_trusted  # noqa: E402
 from src.tutor import MODEL_NAME  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -141,7 +141,11 @@ def measure_accuracy(images: list[Path]) -> dict:
             continue
 
         anchored = [s for s in steps if s.get("anchor", "").strip().upper() != "NONE"]
-        hits = sum(1 for s in anchored if find_text(ocr_data, s["anchor"], s.get("context")))
+        # locate_trusted, not find_text: the shipping path stopped accepting
+        # single-word matches, because across both locator experiments they
+        # were wrong 9 times out of 9 while reporting success. Counting them
+        # here would report an accuracy the product no longer claims.
+        hits = sum(1 for s in anchored if locate_trusted(ocr_data, s["anchor"], s.get("context")))
         matched += hits
         total += len(anchored)
         per_image.append(
@@ -218,7 +222,7 @@ def measure_latency(iterations: int, prepare_seconds: int = 0) -> dict:
         for step in steps:
             anchor = step.get("anchor", "")
             if anchor and anchor.strip().upper() != "NONE":
-                find_text(ocr_data, anchor, step.get("context"))
+                locate_trusted(ocr_data, anchor, step.get("context"))
         lookup_ms.append((time.perf_counter() - t) * 1000)
 
         e2e_ms.append((time.perf_counter() - t0) * 1000)

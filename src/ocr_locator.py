@@ -272,6 +272,31 @@ def find_text(
     return box
 
 
+def locate_trusted(
+    ocr_data: OcrData,
+    target_text: str,
+    context_text: str | None = None,
+) -> Box | None:
+    """Locates text, returning a box only when the whole phrase matched.
+
+    :func:`find_text` will fall back to matching a single word of a multi-word
+    target, found anywhere on screen. That returns a box the caller did not ask
+    for, and measured over both benchmark corpora it was wrong every time it
+    happened -- 0 correct out of 9 -- while being reported as success.
+
+    This is the same search with that outcome treated as a miss, so a caller
+    that would rather draw nothing than draw the wrong thing can say so.
+
+    Returns:
+        A bounding box in image pixels, or None if the phrase was not matched
+        as a phrase.
+    """
+    box, which = find_text_detailed(ocr_data, target_text, context_text)
+    if box is None or which not in TRUSTED_PASSES:
+        return None
+    return box
+
+
 def find_text_detailed(
     ocr_data: OcrData,
     target_text: str,
