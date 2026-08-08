@@ -74,6 +74,26 @@ MAX_EXTRA_WORDS = 2
 AGREEMENT_IOU = 0.5
 STRICT_IOU = 0.75
 
+# Everything in an anchor record that describes the locator model, and so must
+# be cleared before that anchor is measured under a different one. Notably not
+# ocr_box, which comes from Tesseract and is the same whatever model runs.
+_MODEL_SCORE_KEYS = (
+    "not_located",
+    "raw",
+    "localised",
+    "best_iou",
+    "centre_distance_px",
+    "occurrences_in_ocr",
+    "phrase_present_in_box",
+    "words_in_box",
+    "phrase_word_count",
+    "vision_box",
+    "vision_ms",
+    "prompt_tokens",
+    "response_tokens",
+    "skipped",
+)
+
 
 def score_vision_box(ocr_data, phrase: str, vision_box) -> dict:
     """Scores one vision box without trusting any single reference box."""
@@ -174,7 +194,12 @@ def compare_image(path: Path) -> dict | None:
     }
 
 
-def relocate(per_image: list[dict], model: str, sleep_s: float = RATE_LIMIT_SLEEP_S) -> list[dict]:
+def relocate(
+    per_image: list[dict],
+    model: str,
+    sleep_s: float = RATE_LIMIT_SLEEP_S,
+    resume: bool = False,
+) -> list[dict]:
     """Re-runs only the vision locator over a saved run, under a different model.
 
     Varying the model on a full run would also change the lesson, and therefore
@@ -197,6 +222,11 @@ def relocate(per_image: list[dict], model: str, sleep_s: float = RATE_LIMIT_SLEE
             phrase = anchor.get("phrase")
             if not phrase:
                 continue
+            if resume and "localised" in anchor:
+                # Already measured under this model. Daily quotas on the higher
+                # tiers are small enough that redoing finished work is the
+                # difference between completing a corpus and not.
+                continue
 
             time.sleep(sleep_s)
             started = time.perf_counter()
@@ -208,14 +238,22 @@ def relocate(per_image: list[dict], model: str, sleep_s: float = RATE_LIMIT_SLEE
                 # and let the summary report how many were lost rather than
                 # silently averaging over a shorter list.
                 logger.error("Vision locator failed for %r: %s", phrase, exc)
-                anchor.clear()
-                anchor.update({"phrase": phrase, "skipped": f"vision call failed: {exc}"})
+                # Drop this model's scores but keep everything that did not
+                # come from it. Clearing the record here destroyed ocr_box,
+                # which is the OCR side of the comparison, and made the
+                # shipping locator look far worse than it is.
+                for key in _MODEL_SCORE_KEYS:
+                    anchor.pop(key, None)
+                anchor["skipped"] = f"vision call failed: {exc}"
                 continue
             elapsed_ms = (time.perf_counter() - started) * 1000
 
             # Drop the previous model's scores rather than letting any survive
-            # into a record that now describes a different model.
-            for key in ("not_located", "raw", "localised", "best_iou", "centre_distance_px"):
+            # into a record that now describes a different model. "skipped"
+            # goes too: an anchor that failed on an earlier attempt and
+            # succeeded now is no longer skipped, and leaving the key made
+            # summarise() count it in both buckets.
+            for key in _MODEL_SCORE_KEYS:
                 anchor.pop(key, None)
 
             anchor.update(
@@ -265,7 +303,19 @@ def rescore(per_image: list[dict]) -> list[dict]:
         for anchor in image["anchors"]:
             if "phrase" not in anchor:
                 continue
+            if "localised" in anchor:
+                # A retry that succeeded leaves the earlier failure's marker
+                # behind, and summarise() counts scored and skipped separately,
+                # so the anchor lands in both totals.
+                anchor.pop("skipped", None)
             box = anchor.get("ocr_box")
+            if box is None:
+                # Rebuild rather than score it as a miss. OCR is deterministic,
+                # so a record missing this lost it to a bug rather than to the
+                # locator failing -- and scoring a missing field as a failure
+                # is how the shipping locator briefly appeared to drop to 52%.
+                box = find_text(ocr_data, anchor["phrase"], None)
+                anchor["ocr_box"] = box
             if not box:
                 anchor["ocr_localised"] = False
                 continue
@@ -351,6 +401,11 @@ def main() -> int:
         help="seconds between calls; raise it for higher tiers, whose quotas are tighter",
     )
     parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="skip anchors already measured under this model, so a quota cap can be worked around",
+    )
+    parser.add_argument(
         "--api-key-env",
         metavar="VAR",
         help="environment variable holding the key to use, e.g. GEMINI_API_KEY_PRO",
@@ -376,7 +431,7 @@ def main() -> int:
             args.sleep,
             calls * (args.sleep + 2) / 60,
         )
-        per_image = rescore(relocate(per_image, args.relocate, args.sleep))
+        per_image = rescore(relocate(per_image, args.relocate, args.sleep, args.resume))
     elif args.rescore:
         if not out.exists():
             logger.error("No saved run at %s to re-score.", out)
