@@ -70,6 +70,32 @@ def get_client():
     return _client
 
 
+def use_api_key_from_env(var_name: str) -> None:
+    """Rebuilds the client from a different environment variable.
+
+    Higher model tiers are often on a different account from the one a project
+    normally uses. This lets a benchmark point at that account for a run
+    without the key being passed around as an argument, written to a file, or
+    appearing in a log: only the variable's *name* is ever handled here.
+
+    Args:
+        var_name: Name of the environment variable holding the key.
+
+    Raises:
+        TutorConfigError: If that variable is unset or empty.
+    """
+    global _client
+    api_key = os.getenv(var_name)
+    if not api_key:
+        raise TutorConfigError(
+            f"{var_name} is not set. Add it to .env (which is gitignored) "
+            "rather than passing a key on the command line, where it would be "
+            "recorded in shell history."
+        )
+    _client = genai.Client(api_key=api_key)
+    logger.info("Using the API key from %s", var_name)
+
+
 def _is_retryable(exc: Exception) -> bool:
     """Whether a failed call is worth attempting again."""
     if isinstance(exc, genai_errors.ServerError):

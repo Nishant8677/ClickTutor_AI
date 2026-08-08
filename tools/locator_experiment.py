@@ -350,7 +350,15 @@ def main() -> int:
         default=RATE_LIMIT_SLEEP_S,
         help="seconds between calls; raise it for higher tiers, whose quotas are tighter",
     )
+    parser.add_argument(
+        "--api-key-env",
+        metavar="VAR",
+        help="environment variable holding the key to use, e.g. GEMINI_API_KEY_PRO",
+    )
     args = parser.parse_args()
+
+    if args.api_key_env:
+        tutor.use_api_key_from_env(args.api_key_env)
 
     out = OUTPUT_DIR / args.out
 
