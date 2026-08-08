@@ -1,0 +1,301 @@
+{
+    "environment": {
+        "timestamp_utc": "2026-08-08T11:03:23+00:00",
+        "os": "Linux 6.6.87.2-microsoft-standard-WSL2",
+        "machine": "x86_64",
+        "python": "3.12.3",
+        "qt": "6.11.0",
+        "qt_platform": "default",
+        "sdk": "google-genai 2.17.0",
+        "tesseract": "5.3.4",
+        "model": "gemini-3.1-flash-lite"
+    },
+    "engine": "fal-ai/florence-2-large/ocr-with-region",
+    "method": "Ground truth is the hand-verified fragments from hostile_locator.json. Each engine is scored on how closely its best line matches, so this measures reading quality rather than anchor resolution.",
+    "usable_similarity": 0.8,
+    "summary": {
+        "fragments_scored": 23,
+        "tesseract": {
+            "mean_similarity": 0.5984486407693445,
+            "median_similarity": 0.5161290322580645,
+            "usable": 7,
+            "failed": 10
+        },
+        "florence": {
+            "mean_similarity": 0.8320391146914757,
+            "median_similarity": 1.0,
+            "usable": 19,
+            "failed": 4
+        },
+        "florence_ms": 13975.980056999788
+    },
+    "per_image": [
+        {
+            "image": "benchmarks/hostile/book_page_blackbg.png",
+            "tesseract_mean_confidence": 71.18611987381703,
+            "tesseract_lines": 51,
+            "florence_regions": 60,
+            "florence_ms": 15479.10416599916,
+            "fragments": [
+                {
+                    "fragment": "ACTS 1:21",
+                    "tesseract": 0.375,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "ACTS 2:21",
+                    "tesseract": 0.375,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "157",
+                    "tesseract": 0.3333333333333333,
+                    "florence": 0.2
+                }
+            ],
+            "tesseract_sample": [
+                "7 tb",
+                "eleven, lifted up his volee andl sect we",
+                "them, Ye men of Judaea, and all ye due"
+            ],
+            "florence_sample": [
+                "ACTS 121",
+                "ACTS 221",
+                "and let no man dwell therein and his"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/book_page_whitebg.png",
+            "tesseract_mean_confidence": 75.30337078651685,
+            "tesseract_lines": 37,
+            "florence_regions": 39,
+            "florence_ms": 17553.515984000114,
+            "fragments": [
+                {
+                    "fragment": "STRAND",
+                    "tesseract": 0.6153846153846154,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "DANIEL KRAUS",
+                    "tesseract": 0.3225806451612903,
+                    "florence": 0.9166666666666666
+                },
+                {
+                    "fragment": "Angel Down",
+                    "tesseract": 0.375,
+                    "florence": 0.8
+                }
+            ],
+            "tesseract_sample": [
+                "bite. and",
+                "it everything",
+                "Buttural grog"
+            ],
+            "florence_sample": [
+                "STRAND",
+                "Angl Doun 155",
+                "52 DANIEL KRAUS"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/darkMode_ui.png",
+            "tesseract_mean_confidence": 78.15254237288136,
+            "tesseract_lines": 27,
+            "florence_regions": 75,
+            "florence_ms": 22587.782704000347,
+            "fragments": [
+                {
+                    "fragment": "Main Dashboard",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "James Martinia Junior",
+                    "tesseract": 0.8484848484848485,
+                    "florence": 0.8235294117647058
+                },
+                {
+                    "fragment": "Overview",
+                    "tesseract": 0.6956521739130435,
+                    "florence": 1.0
+                }
+            ],
+            "tesseract_sample": [
+                "q Home Settings",
+                "Main Dashboard",
+                "Overview Account Services"
+            ],
+            "florence_sample": [
+                "Jessica Lofez",
+                "Home",
+                "Settings"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/diagram_with_rotated_labels.png",
+            "tesseract_mean_confidence": 42.52777777777778,
+            "tesseract_lines": 20,
+            "florence_regions": 25,
+            "florence_ms": 12599.926413999128,
+            "fragments": [
+                {
+                    "fragment": "Angle: 0",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "Angle: 45",
+                    "tesseract": 0.7692307692307693,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "Angle: 90",
+                    "tesseract": 0.9230769230769231,
+                    "florence": 0.9333333333333333
+                }
+            ],
+            "tesseract_sample": [
+                "Angle: 0",
+                "S ThisisaLabel",
+                "4"
+            ],
+            "florence_sample": [
+                "Angle: 0",
+                "This is a Label",
+                "This is is a Label"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/handwritten.png",
+            "tesseract_mean_confidence": 21.7,
+            "tesseract_lines": 7,
+            "florence_regions": 9,
+            "florence_ms": 6977.197594000245,
+            "fragments": [
+                {
+                    "fragment": "The Trial of Strength",
+                    "tesseract": 0.3448275862068966,
+                    "florence": 0.47058823529411764
+                },
+                {
+                    "fragment": "Moral: Intelligence is strength",
+                    "tesseract": 0.3684210526315789,
+                    "florence": 0.8214285714285714
+                },
+                {
+                    "fragment": "A long time ago",
+                    "tesseract": 0.43478260869565216,
+                    "florence": 0.24390243902439024
+                }
+            ],
+            "tesseract_sample": [
+                "hy, bogst Mh, ce",
+                "ence wth, hen peut ste",
+                "desk orc, comb"
+            ],
+            "florence_sample": [
+                "the wind and trist first to take the aeid",
+                "the wind gathereied atl he fesr aod",
+                "the blen the trenmelles fell his lndy"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/maths_integral.png",
+            "tesseract_mean_confidence": 67.58549222797927,
+            "tesseract_lines": 40,
+            "florence_regions": 61,
+            "florence_ms": 13748.63030599954,
+            "fragments": [
+                {
+                    "fragment": "INTEGRALS AND APPLICATION OF INTEGRALS",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "CBSE 2020",
+                    "tesseract": 0.5161290322580645,
+                    "florence": 0.8
+                },
+                {
+                    "fragment": "Pinaki Chakraborty KVS",
+                    "tesseract": 0.95,
+                    "florence": 0.29411764705882354
+                }
+            ],
+            "tesseract_sample": [
+                "INTEGRALS AND APPLICATION OF INTEGRALS",
+                "{x2e* dx is equal to [CBSE 2020 (65/5/1)]",
+                "(a) se\" +C (b) se+C e+ (d) Fe\" +C"
+            ],
+            "florence_sample": [
+                "INTEGRALS AND APPLICATION OF INTEGRALS",
+                "1",
+                "jx2dx is equal to"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/text_over_image.png",
+            "tesseract_mean_confidence": 94.99152542372882,
+            "tesseract_lines": 12,
+            "florence_regions": 14,
+            "florence_ms": 5314.959879000526,
+            "fragments": [
+                {
+                    "fragment": "Book a Session",
+                    "tesseract": 1.0,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "CALL US",
+                    "tesseract": 0.2222222222222222,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "EMAIL US",
+                    "tesseract": 0.22641509433962265,
+                    "florence": 1.0
+                }
+            ],
+            "tesseract_sample": [
+                "This is a great space to write a long text about your",
+                "company and your services. You can use this space to go",
+                "into a little more detail about your company. Talk about"
+            ],
+            "florence_sample": [
+                "This is a great space to write a long text about your",
+                "company and your services. You can use this space to go",
+                "into a little more detail about your company. Talk about"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/whiteboard.png",
+            "tesseract_mean_confidence": 32.35579514824798,
+            "tesseract_lines": 39,
+            "florence_regions": 58,
+            "florence_ms": 17546.72340899924,
+            "fragments": [
+                {
+                    "fragment": "Control of gene expression",
+                    "tesseract": 0.5581395348837209,
+                    "florence": 1.0
+                },
+                {
+                    "fragment": "recombinant DNA",
+                    "tesseract": 0.5106382978723404,
+                    "florence": 0.8333333333333334
+                }
+            ],
+            "tesseract_sample": [
+                "Vv_",
+                "If oh?",
+                "COWIE OF Bete exPve s10N:"
+            ],
+            "florence_sample": [
+                "genetics of bacteria:",
+                "Control of gene expression:",
+                "re combinan:"
+            ]
+        }
+    ]
+}

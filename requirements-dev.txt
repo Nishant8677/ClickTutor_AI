@@ -3,3 +3,7 @@
 
 matplotlib  # Used in tools/benchmark.py for chart generation
 pytest==9.1.1  # Unit tests under tests/unit/
+
+# Used only by tools/ocr_engine_comparison.py to reach fal. Already present
+# as a google-genai dependency, pinned here because a tool imports it directly.
+httpx==0.28.1
