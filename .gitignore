@@ -71,3 +71,7 @@ clicky_repo/
 #   python tools/hostile_locator_experiment.py --redraw
 # The boxes they draw are committed in benchmarks/hostile_locator.json.
 /benchmarks/hostile/overlays/
+
+# Held-out overlays. Regenerate with:
+#   python tools/router_validation.py --redraw
+/benchmarks/heldout/overlays/

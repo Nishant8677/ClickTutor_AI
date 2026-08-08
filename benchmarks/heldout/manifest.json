@@ -1,0 +1,54 @@
+{
+    "_note": "Screenshots taken by the repo owner on 2026-08-08, after the phrase-level routing rule was already committed in 9e1c0df. Not selected for difficulty and not seen before the rule was fixed, which is what makes them a held-out test of it.",
+    "images": {
+        "heldout_1.png": {
+            "original_filename": "Screenshot 2026-08-08 152140.png",
+            "size": [
+                1919,
+                927
+            ]
+        },
+        "heldout_2.png": {
+            "original_filename": "Screenshot 2026-08-08 152155.png",
+            "size": [
+                1919,
+                924
+            ]
+        },
+        "heldout_3.png": {
+            "original_filename": "Screenshot 2026-08-08 152237.png",
+            "size": [
+                1920,
+                1080
+            ]
+        },
+        "heldout_4.png": {
+            "original_filename": "Screenshot 2026-08-08 152312.png",
+            "size": [
+                1920,
+                1080
+            ]
+        },
+        "heldout_5.png": {
+            "original_filename": "Screenshot 2026-08-08 170103.png",
+            "size": [
+                1914,
+                931
+            ]
+        },
+        "heldout_6.png": {
+            "original_filename": "Screenshot 2026-08-08 170152.png",
+            "size": [
+                1919,
+                910
+            ]
+        },
+        "heldout_7.png": {
+            "original_filename": "Screenshot 2026-08-08 170256.png",
+            "size": [
+                1918,
+                912
+            ]
+        }
+    }
+}

@@ -1,0 +1,412 @@
+{
+    "environment": {
+        "timestamp_utc": "2026-08-08T11:38:22+00:00",
+        "os": "Windows 10",
+        "machine": "AMD64",
+        "python": "3.11.4",
+        "qt": "6.11.0",
+        "qt_platform": "default",
+        "sdk": "google-genai 2.17.0",
+        "tesseract": "5.4.0.20240606",
+        "model": "gemini-3.1-flash-lite"
+    },
+    "method": "Screenshots taken after the routing rule was committed. Each anchor records which locator pass matched it; verdicts are added by hand from the overlays. Vision fallback is disabled so the rule is measured on its own.",
+    "crosstab": {
+        "by_pass": {
+            "line_substring": {
+                "correct": 25,
+                "wrong": 0,
+                "unscored": 1
+            }
+        },
+        "trusted": {
+            "correct": 25,
+            "wrong": 0
+        },
+        "word_level": {
+            "correct": 0,
+            "wrong": 0
+        }
+    },
+    "per_image": [
+        {
+            "image": "benchmarks/heldout/heldout_1.png",
+            "ocr_words": 321,
+            "ocr_mean_confidence": 90.14018691588785,
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "Render",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 542,
+                        "top": 404,
+                        "width": 56,
+                        "height": 14
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Cloudflare workers",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 541,
+                        "top": 434,
+                        "width": 147,
+                        "height": 14
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "CC",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 1142,
+                        "top": 520,
+                        "width": 24,
+                        "height": 13
+                    },
+                    "verdict": "uncertain"
+                },
+                {
+                    "phrase": "static IP",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 931,
+                        "top": 863,
+                        "width": 59,
+                        "height": 13
+                    },
+                    "verdict": "correct"
+                }
+            ],
+            "overlay": "benchmarks/heldout/overlays/heldout_1_boxes.png"
+        },
+        {
+            "image": "benchmarks/heldout/heldout_2.png",
+            "ocr_words": 143,
+            "ocr_mean_confidence": 82.86013986013987,
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "Rotated X-Axis Labels",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 557,
+                        "top": 294,
+                        "width": 116,
+                        "height": 9
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Rotation Angles",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 1409,
+                        "top": 216,
+                        "width": 126,
+                        "height": 18
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "simple diagram showing Earth rotating",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 1554,
+                        "top": 845,
+                        "width": 347,
+                        "height": 45
+                    },
+                    "verdict": "correct"
+                }
+            ],
+            "overlay": "benchmarks/heldout/overlays/heldout_2_boxes.png"
+        },
+        {
+            "image": "benchmarks/heldout/heldout_3.png",
+            "ocr_words": 137,
+            "ocr_mean_confidence": 80.43065693430657,
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "diagram_with_rotated_labels.gif",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 916,
+                        "top": 892,
+                        "width": 214,
+                        "height": 15
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Search for apps, settings, and documents",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 516,
+                        "top": 127,
+                        "width": 317,
+                        "height": 23
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "File Explorer",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 601,
+                        "top": 742,
+                        "width": 82,
+                        "height": 15
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Notepad",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 1093,
+                        "top": 638,
+                        "width": 58,
+                        "height": 14
+                    },
+                    "verdict": "correct"
+                }
+            ],
+            "overlay": "benchmarks/heldout/overlays/heldout_3_boxes.png"
+        },
+        {
+            "image": "benchmarks/heldout/heldout_4.png",
+            "ocr_words": 116,
+            "ocr_mean_confidence": 66.81896551724138,
+            "repair_calls": 1,
+            "anchors": [
+                {
+                    "phrase": "assets",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 98,
+                        "top": 124,
+                        "width": 42,
+                        "height": 10
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "cutouts",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 108,
+                        "top": 152,
+                        "width": 52,
+                        "height": 10
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Kai_full1.rembg2soft.png",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 119,
+                        "top": 193,
+                        "width": 175,
+                        "height": 16
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "04_split-left.png",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 477,
+                        "top": 58,
+                        "width": 110,
+                        "height": 19
+                    },
+                    "verdict": "correct"
+                }
+            ],
+            "overlay": "benchmarks/heldout/overlays/heldout_4_boxes.png"
+        },
+        {
+            "image": "benchmarks/heldout/heldout_5.png",
+            "ocr_words": 145,
+            "ocr_mean_confidence": 93.93793103448276,
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "Fake News Detection API",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 517,
+                        "top": 163,
+                        "width": 586,
+                        "height": 41
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "This model is wrong more often than it is right.",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 534,
+                        "top": 348,
+                        "width": 397,
+                        "height": 20
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Try aclaim",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 514,
+                        "top": 655,
+                        "width": 159,
+                        "height": 32
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Claim",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 514,
+                        "top": 805,
+                        "width": 41,
+                        "height": 14
+                    },
+                    "verdict": "correct"
+                }
+            ],
+            "overlay": "benchmarks/heldout/overlays/heldout_5_boxes.png"
+        },
+        {
+            "image": "benchmarks/heldout/heldout_6.png",
+            "ocr_words": 113,
+            "ocr_mean_confidence": 91.84955752212389,
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "uploading your resume or CV.",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 1009,
+                        "top": 336,
+                        "width": 188,
+                        "height": 13
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Upload a file type of DOC, DOCX, PDF, or TXT",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 806,
+                        "top": 382,
+                        "width": 290,
+                        "height": 15
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Accept",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 31,
+                        "top": 846,
+                        "width": 100,
+                        "height": 43
+                    },
+                    "verdict": "correct"
+                }
+            ],
+            "overlay": "benchmarks/heldout/overlays/heldout_6_boxes.png"
+        },
+        {
+            "image": "benchmarks/heldout/heldout_7.png",
+            "ocr_words": 99,
+            "ocr_mean_confidence": 88.60606060606061,
+            "repair_calls": 0,
+            "anchors": [
+                {
+                    "phrase": "Eligibility",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 775,
+                        "top": 327,
+                        "width": 96,
+                        "height": 21
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Registration Deadline",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 800,
+                        "top": 287,
+                        "width": 217,
+                        "height": 21
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Reward Pool of",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 1485,
+                        "top": 720,
+                        "width": 98,
+                        "height": 11
+                    },
+                    "verdict": "correct"
+                },
+                {
+                    "phrase": "Registrations",
+                    "pass": "line_substring",
+                    "trusted": true,
+                    "box": {
+                        "left": 494,
+                        "top": 396,
+                        "width": 125,
+                        "height": 19
+                    },
+                    "verdict": "correct"
+                }
+            ],
+            "overlay": "benchmarks/heldout/overlays/heldout_7_boxes.png"
+        }
+    ],
+    "hand_scoring": {
+        "judged_by": "visual inspection of benchmarks/heldout/overlays/*.png",
+        "note": "One anchor is marked uncertain rather than correct: 'CC' on heldout_1 landed on a glyph I could not confidently read as those letters, and the string also occurs elsewhere on the page. Counting it either way would be a guess."
+    }
+}
