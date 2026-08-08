@@ -1,0 +1,520 @@
+{
+    "environment": {
+        "timestamp_utc": "2026-08-08T09:06:06+00:00",
+        "os": "Windows 10",
+        "machine": "AMD64",
+        "python": "3.11.4",
+        "qt": "6.11.0",
+        "qt_platform": "default",
+        "sdk": "google-genai 2.17.0",
+        "tesseract": "5.4.0.20240606",
+        "model": "gemini-3.1-flash-lite"
+    },
+    "method": "Fragments are named by the model from the image alone, with no OCR input, then localised by the same model. OCR cannot score these images, so verdicts are added by hand from the overlays.",
+    "per_image": [
+        {
+            "image": "benchmarks\\hostile\\book_page_blackbg.png",
+            "image_size": [
+                640,
+                640
+            ],
+            "ocr_words": 311,
+            "ocr_mean_confidence": 70.9967845659164,
+            "fragments_named": 3,
+            "located": [
+                {
+                    "fragment": "ACTS 1:21",
+                    "vision_box": {
+                        "left": 53,
+                        "top": 104,
+                        "width": 31,
+                        "height": 9
+                    },
+                    "ocr_box": null,
+                    "ocr_would_locate": false,
+                    "verdict": "correct",
+                    "ocr_verdict": "none"
+                },
+                {
+                    "fragment": "ACTS 2:21",
+                    "vision_box": {
+                        "left": 590,
+                        "top": 118,
+                        "width": 30,
+                        "height": 9
+                    },
+                    "ocr_box": null,
+                    "ocr_would_locate": false,
+                    "verdict": "correct",
+                    "ocr_verdict": "none"
+                },
+                {
+                    "fragment": "157",
+                    "vision_box": {
+                        "left": 590,
+                        "top": 524,
+                        "width": 12,
+                        "height": 5
+                    },
+                    "ocr_box": null,
+                    "ocr_would_locate": false,
+                    "verdict": "correct",
+                    "ocr_verdict": "none"
+                }
+            ],
+            "overlay": "benchmarks\\hostile\\overlays\\book_page_blackbg_boxes.png"
+        },
+        {
+            "image": "benchmarks\\hostile\\book_page_whitebg.png",
+            "image_size": [
+                640,
+                480
+            ],
+            "ocr_words": 173,
+            "ocr_mean_confidence": 74.90751445086705,
+            "fragments_named": 3,
+            "located": [
+                {
+                    "fragment": "STRAND",
+                    "vision_box": {
+                        "left": 355,
+                        "top": 0,
+                        "width": 65,
+                        "height": 23
+                    },
+                    "ocr_box": null,
+                    "ocr_would_locate": false,
+                    "verdict": "correct",
+                    "ocr_verdict": "none"
+                },
+                {
+                    "fragment": "DANIEL KRAUS",
+                    "vision_box": {
+                        "left": 142,
+                        "top": 45,
+                        "width": 45,
+                        "height": 9
+                    },
+                    "ocr_box": null,
+                    "ocr_would_locate": false,
+                    "verdict": "correct",
+                    "ocr_verdict": "none"
+                },
+                {
+                    "fragment": "Angel Down",
+                    "vision_box": {
+                        "left": 489,
+                        "top": 45,
+                        "width": 49,
+                        "height": 10
+                    },
+                    "ocr_box": {
+                        "left": 446,
+                        "top": 215,
+                        "width": 17,
+                        "height": 7
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "wrong"
+                }
+            ],
+            "overlay": "benchmarks\\hostile\\overlays\\book_page_whitebg_boxes.png"
+        },
+        {
+            "image": "benchmarks\\hostile\\darkMode_ui.png",
+            "image_size": [
+                1600,
+                1200
+            ],
+            "ocr_words": 58,
+            "ocr_mean_confidence": 78.70689655172414,
+            "fragments_named": 3,
+            "located": [
+                {
+                    "fragment": "Main Dashboard",
+                    "vision_box": {
+                        "left": 141,
+                        "top": 244,
+                        "width": 248,
+                        "height": 36
+                    },
+                    "ocr_box": {
+                        "left": 143,
+                        "top": 249,
+                        "width": 245,
+                        "height": 24
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "correct"
+                },
+                {
+                    "fragment": "James Martinia Junior",
+                    "vision_box": {
+                        "left": 1139,
+                        "top": 238,
+                        "width": 239,
+                        "height": 72
+                    },
+                    "ocr_box": {
+                        "left": 1144,
+                        "top": 242,
+                        "width": 230,
+                        "height": 61
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "correct"
+                },
+                {
+                    "fragment": "Overview",
+                    "vision_box": {
+                        "left": 144,
+                        "top": 296,
+                        "width": 83,
+                        "height": 26
+                    },
+                    "ocr_box": {
+                        "left": 145,
+                        "top": 302,
+                        "width": 82,
+                        "height": 21
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "correct"
+                }
+            ],
+            "overlay": "benchmarks\\hostile\\overlays\\darkMode_ui_boxes.png"
+        },
+        {
+            "image": "benchmarks\\hostile\\diagram_with_rotated_labels.png",
+            "image_size": [
+                406,
+                407
+            ],
+            "ocr_words": 31,
+            "ocr_mean_confidence": 44.225806451612904,
+            "fragments_named": 3,
+            "located": [
+                {
+                    "fragment": "Angle: 0",
+                    "vision_box": {
+                        "left": 169,
+                        "top": 77,
+                        "width": 64,
+                        "height": 23
+                    },
+                    "ocr_box": {
+                        "left": 183,
+                        "top": 91,
+                        "width": 40,
+                        "height": 10
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "correct"
+                },
+                {
+                    "fragment": "Angle: 45",
+                    "vision_box": {
+                        "left": 237,
+                        "top": 109,
+                        "width": 61,
+                        "height": 48
+                    },
+                    "ocr_box": {
+                        "left": 183,
+                        "top": 91,
+                        "width": 30,
+                        "height": 10
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "wrong"
+                },
+                {
+                    "fragment": "Angle: 90",
+                    "vision_box": {
+                        "left": 286,
+                        "top": 166,
+                        "width": 18,
+                        "height": 72
+                    },
+                    "ocr_box": {
+                        "left": 183,
+                        "top": 91,
+                        "width": 30,
+                        "height": 10
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "wrong"
+                }
+            ],
+            "overlay": "benchmarks\\hostile\\overlays\\diagram_with_rotated_labels_boxes.png"
+        },
+        {
+            "image": "benchmarks\\hostile\\handwritten.png",
+            "image_size": [
+                168,
+                300
+            ],
+            "ocr_words": 20,
+            "ocr_mean_confidence": 22.4,
+            "fragments_named": 3,
+            "located": [
+                {
+                    "fragment": "The Trial of Strength",
+                    "vision_box": {
+                        "left": 28,
+                        "top": 8,
+                        "width": 77,
+                        "height": 9
+                    },
+                    "ocr_box": null,
+                    "ocr_would_locate": false,
+                    "verdict": "correct",
+                    "ocr_verdict": "none"
+                },
+                {
+                    "fragment": "Moral: Intelligence is strength",
+                    "vision_box": {
+                        "left": 10,
+                        "top": 257,
+                        "width": 139,
+                        "height": 14
+                    },
+                    "ocr_box": {
+                        "left": 78,
+                        "top": 155,
+                        "width": 18,
+                        "height": 7
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "wrong"
+                },
+                {
+                    "fragment": "A long time ago",
+                    "vision_box": {
+                        "left": 8,
+                        "top": 22,
+                        "width": 59,
+                        "height": 10
+                    },
+                    "ocr_box": {
+                        "left": 160,
+                        "top": 186,
+                        "width": 8,
+                        "height": 11
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "wrong"
+                }
+            ],
+            "overlay": "benchmarks\\hostile\\overlays\\handwritten_boxes.png"
+        },
+        {
+            "image": "benchmarks\\hostile\\maths_integral.png",
+            "image_size": [
+                768,
+                1024
+            ],
+            "ocr_words": 191,
+            "ocr_mean_confidence": 67.82722513089006,
+            "fragments_named": 3,
+            "located": [
+                {
+                    "fragment": "INTEGRALS AND APPLICATION OF INTEGRALS",
+                    "vision_box": {
+                        "left": 173,
+                        "top": 35,
+                        "width": 421,
+                        "height": 17
+                    },
+                    "ocr_box": {
+                        "left": 174,
+                        "top": 36,
+                        "width": 421,
+                        "height": 15
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "correct"
+                },
+                {
+                    "fragment": "CBSE 2020",
+                    "vision_box": {
+                        "left": 558,
+                        "top": 713,
+                        "width": 129,
+                        "height": 13
+                    },
+                    "ocr_box": {
+                        "left": 562,
+                        "top": 97,
+                        "width": 72,
+                        "height": 12
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "correct"
+                },
+                {
+                    "fragment": "Pinaki Chakraborty KVS",
+                    "vision_box": {
+                        "left": 538,
+                        "top": 975,
+                        "width": 193,
+                        "height": 17
+                    },
+                    "ocr_box": {
+                        "left": 540,
+                        "top": 976,
+                        "width": 57,
+                        "height": 13
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "partial"
+                }
+            ],
+            "overlay": "benchmarks\\hostile\\overlays\\maths_integral_boxes.png"
+        },
+        {
+            "image": "benchmarks\\hostile\\text_over_image.png",
+            "image_size": [
+                662,
+                422
+            ],
+            "ocr_words": 118,
+            "ocr_mean_confidence": 94.8135593220339,
+            "fragments_named": 3,
+            "located": [
+                {
+                    "fragment": "Book a Session",
+                    "vision_box": {
+                        "left": 202,
+                        "top": 215,
+                        "width": 240,
+                        "height": 27
+                    },
+                    "ocr_box": {
+                        "left": 204,
+                        "top": 215,
+                        "width": 238,
+                        "height": 25
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "correct"
+                },
+                {
+                    "fragment": "CALL US",
+                    "vision_box": {
+                        "left": 220,
+                        "top": 328,
+                        "width": 97,
+                        "height": 38
+                    },
+                    "ocr_box": null,
+                    "ocr_would_locate": false,
+                    "verdict": "correct",
+                    "ocr_verdict": "none"
+                },
+                {
+                    "fragment": "EMAIL US",
+                    "vision_box": {
+                        "left": 328,
+                        "top": 329,
+                        "width": 102,
+                        "height": 37
+                    },
+                    "ocr_box": null,
+                    "ocr_would_locate": false,
+                    "verdict": "correct",
+                    "ocr_verdict": "none"
+                }
+            ],
+            "overlay": "benchmarks\\hostile\\overlays\\text_over_image_boxes.png"
+        },
+        {
+            "image": "benchmarks\\hostile\\whiteboard.png",
+            "image_size": [
+                1999,
+                1500
+            ],
+            "ocr_words": 411,
+            "ocr_mean_confidence": 37.33576642335766,
+            "fragments_named": 3,
+            "located": [
+                {
+                    "fragment": "Control of gene expression",
+                    "vision_box": {
+                        "left": 130,
+                        "top": 210,
+                        "width": 436,
+                        "height": 48
+                    },
+                    "ocr_box": {
+                        "left": 272,
+                        "top": 220,
+                        "width": 31,
+                        "height": 29
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "partial"
+                },
+                {
+                    "fragment": "recombinant DNA",
+                    "vision_box": {
+                        "left": 614,
+                        "top": 162,
+                        "width": 210,
+                        "height": 87
+                    },
+                    "ocr_box": {
+                        "left": 660,
+                        "top": 260,
+                        "width": 71,
+                        "height": 51
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "correct",
+                    "ocr_verdict": "partial"
+                },
+                {
+                    "fragment": "genetics of bacteria",
+                    "vision_box": {
+                        "left": 998,
+                        "top": 162,
+                        "width": 285,
+                        "height": 48
+                    },
+                    "ocr_box": {
+                        "left": 272,
+                        "top": 220,
+                        "width": 31,
+                        "height": 29
+                    },
+                    "ocr_would_locate": true,
+                    "verdict": "offset",
+                    "ocr_verdict": "wrong"
+                }
+            ],
+            "overlay": "benchmarks\\hostile\\overlays\\whiteboard_boxes.png"
+        }
+    ],
+    "hand_scoring": {
+        "judged_by": "visual inspection of benchmarks/hostile/overlays/*.png",
+        "vision_correct": 23,
+        "ocr_correct": 7,
+        "ocr_claimed_located": 16,
+        "targets": 24,
+        "note": "ocr_would_locate is find_text returning any box. ocr_verdict is whether that box was actually on the target. The gap between them is silent failure: a confident box on the wrong thing."
+    }
+}

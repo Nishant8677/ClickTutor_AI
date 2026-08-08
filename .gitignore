@@ -66,3 +66,8 @@ Thumbs.db
 
 # Old experiment clones (review before committing)
 clicky_repo/
+
+# Locator-experiment overlays. Regenerate with:
+#   python tools/hostile_locator_experiment.py --redraw
+# The boxes they draw are committed in benchmarks/hostile_locator.json.
+/benchmarks/hostile/overlays/
