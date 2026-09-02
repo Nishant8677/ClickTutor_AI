@@ -7,8 +7,9 @@ application, not a mock.
 
     python tools/demo_drive.py --question "What does this function do?"
 
-The question dialog is answered by patching QInputDialog.getText. That dialog
-is modal and would otherwise block the event loop this script drives.
+The question goes in through the controller's ask(), the same entry point the
+companion's field uses, so nothing modal blocks the event loop this script
+drives.
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from PyQt6.QtCore import QTimer  # noqa: E402
-from PyQt6.QtWidgets import QApplication, QInputDialog  # noqa: E402
+from PyQt6.QtWidgets import QApplication  # noqa: E402
 
 from src.console import configure_stdio  # noqa: E402
 from src.desktop.controller import DesktopController  # noqa: E402
@@ -63,9 +64,6 @@ class DemoDriver:
         self.failed: str | None = None
 
     def run(self) -> int:
-        # Answer the modal question dialog without a human.
-        QInputDialog.getText = lambda *a, **kw: (self.question, True)
-
         self.c.start()
 
         # Recording starts only after this, so switching to the window you want
@@ -102,8 +100,8 @@ class DemoDriver:
         return 0
 
     def _trigger_capture(self) -> None:
-        logger.info("Triggering capture…")
-        self.c.input_manager.handle_action(InputAction.CAPTURE_SCREEN)
+        logger.info("Asking: %s", self.question)
+        self.c.ask(self.question)
         QTimer.singleShot(POLL_MS, self._await_lesson)
 
     def _await_lesson(self) -> None:

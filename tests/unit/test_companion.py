@@ -6,7 +6,7 @@ Runs under the offscreen platform plugin, so no display is required.
 import pytest
 from PyQt6.QtWidgets import QApplication
 
-from src.desktop.companion import FloatingCompanion
+from src.desktop.companion import DEFAULT_QUESTION, FloatingCompanion
 from src.input.input_manager import InputManager
 from src.input.state_machine import TutorState
 
@@ -241,3 +241,83 @@ class TestQuestionDisplay:
         companion.set_question("   ")
 
         assert not companion.lbl_question.isVisibleTo(companion)
+
+
+class TestQuestionField:
+    """Stage 1 of narrated lessons: the question is typed in the companion,
+    not in a modal dialog after the capture."""
+
+    @pytest.mark.parametrize("state", [TutorState.IDLE, TutorState.TEACHING, TutorState.FINISHED])
+    def test_field_is_offered_whenever_a_question_could_be_taken(self, companion, state):
+        companion.apply_state(state)
+
+        assert companion.ask_widget.isVisibleTo(companion)
+
+    @pytest.mark.parametrize("state", [TutorState.CAPTURING, TutorState.ANALYZING])
+    def test_field_is_withdrawn_while_the_tutor_is_busy(self, companion, state):
+        companion.apply_state(state)
+
+        assert not companion.ask_widget.isVisibleTo(companion)
+
+    def test_typed_question_is_submitted_stripped(self, companion):
+        seen = []
+        companion.question_submitted.connect(seen.append)
+        companion.question_input.setText("  What does count do?  ")
+
+        companion.submit_question()
+
+        assert seen == ["What does count do?"]
+
+    def test_empty_field_submits_the_default_question(self, companion):
+        # The fastest path -- hotkey, Enter -- must produce a lesson, not a
+        # cancel.
+        seen = []
+        companion.question_submitted.connect(seen.append)
+
+        companion.submit_question()
+
+        assert seen == [DEFAULT_QUESTION]
+
+    def test_ask_button_submits(self, companion):
+        seen = []
+        companion.question_submitted.connect(seen.append)
+        companion.question_input.setText("Why?")
+
+        companion.btn_ask.click()
+
+        assert seen == ["Why?"]
+
+    def test_field_is_cleared_after_submitting(self, companion):
+        companion.question_input.setText("Why?")
+
+        companion.submit_question()
+
+        assert companion.question_input.text() == ""
+
+    def test_nothing_is_submitted_while_busy(self, companion):
+        seen = []
+        companion.question_submitted.connect(seen.append)
+        companion.apply_state(TutorState.ANALYZING)
+        companion.question_input.setText("Why?")
+
+        companion.submit_question()
+
+        assert seen == []
+
+    def test_escape_in_the_field_clears_it_without_dismissing(self, companion, qt_app):
+        from PyQt6.QtCore import QEvent, Qt
+        from PyQt6.QtGui import QKeyEvent
+
+        dismissed = []
+        companion.dismiss_requested.connect(lambda: dismissed.append(True))
+        companion.question_input.setText("half a quest")
+
+        escape = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+        qt_app.sendEvent(companion.question_input, escape)
+
+        assert companion.question_input.text() == ""
+        assert dismissed == []
+
+    def test_default_question_is_a_real_question(self):
+        assert DEFAULT_QUESTION.strip()
+        assert DEFAULT_QUESTION.endswith(".") or DEFAULT_QUESTION.endswith("?")

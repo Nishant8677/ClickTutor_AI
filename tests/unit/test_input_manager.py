@@ -42,6 +42,28 @@ class TestCaptureGuard:
 
         assert manager.dispatched == []
 
+    @pytest.mark.parametrize(
+        "state",
+        [TutorState.IDLE, TutorState.TEACHING, TutorState.FINISHED],
+    )
+    def test_ask_is_allowed_when_not_busy(self, manager, state):
+        # Asking from the companion's field replaces the old modal dialog, so
+        # it has exactly the capture's guard: a typed question during a
+        # lesson starts a new one.
+        manager.set_state(state)
+
+        manager.handle_action(InputAction.ASK)
+
+        assert manager.dispatched == [InputAction.ASK]
+
+    @pytest.mark.parametrize("state", [TutorState.CAPTURING, TutorState.ANALYZING])
+    def test_ask_is_blocked_while_genuinely_busy(self, manager, state):
+        manager.set_state(state)
+
+        manager.handle_action(InputAction.ASK)
+
+        assert manager.dispatched == []
+
 
 class TestCancelGuard:
     def test_cancel_is_dropped_when_idle(self, manager):

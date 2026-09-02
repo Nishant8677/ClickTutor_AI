@@ -59,12 +59,13 @@ class InputManager(QObject):
             self.current_state.name,
         )
 
-        if action == InputAction.CAPTURE_SCREEN:
+        if action in (InputAction.CAPTURE_SCREEN, InputAction.ASK):
             if self.current_state in _CAPTURE_READY_STATES:
                 self._dispatch(action)
             else:
                 logger.warning(
-                    "Ignored CAPTURE_SCREEN: Tutor is busy (%s)",
+                    "Ignored %s: Tutor is busy (%s)",
+                    action.name,
                     self.current_state.name,
                 )
 

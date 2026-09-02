@@ -8,7 +8,6 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QHBoxLayout,
-    QInputDialog,
     QLabel,
     QMessageBox,
     QPushButton,
@@ -25,7 +24,7 @@ from src.attention.shapes import (
     RectangleShape,
     UnderlineShape,
 )
-from src.desktop.companion import FloatingCompanion
+from src.desktop.companion import DEFAULT_QUESTION, FloatingCompanion
 from src.input import InputAction, InputManager, TutorState
 from src.locator import OcrLocator
 from src.ocr_locator import build_words, extract_ocr_data
@@ -42,6 +41,14 @@ VISION_LOCATOR = locate_phrase
 # both also permit "arrow", but relationship arrows are deferred to Phase 4, so
 # such a step is drawn as a rectangle and logged rather than failing silently.
 RENDERABLE_ATTENTIONS = frozenset({"circle", "underline", "rectangle", "none"})
+
+# A second hotkey press within this window asks with whatever has been typed,
+# even if Windows refused to focus the companion's field on the first press.
+# Focus from a global hook is not guaranteed -- the foreground-lock rule can
+# leave the field unfocused and the taskbar flashing -- so the fast path must
+# not depend on it. Long enough to type a short question; short enough that a
+# press ten minutes later reads as a fresh start.
+HOTKEY_ASK_WINDOW_SECONDS = 20.0
 
 # Time for the window manager to finish removing the companion before a grab.
 # Hiding and capturing in the same tick races, and the panel shows up in the
@@ -136,6 +143,7 @@ class DesktopUI(QWidget):
         layout.addLayout(demo_layout)
 
         self.lbl_status = QLabel("Ready. Ask a question about the screen:")
+        self.lbl_status.setWordWrap(True)
         layout.addWidget(self.lbl_status)
 
         self.text_question = QTextEdit()
@@ -145,7 +153,7 @@ class DesktopUI(QWidget):
 
         self.btn_capture = QPushButton("Capture & Ask")
         self.btn_capture.clicked.connect(
-            lambda: self.controller.input_manager.handle_action(InputAction.CAPTURE_SCREEN)
+            lambda: self.controller.ask(self.text_question.toPlainText())
         )
         layout.addWidget(self.btn_capture)
 
@@ -265,6 +273,7 @@ class DesktopController:
         self.companion.dismiss_requested.connect(
             lambda: self.input_manager.handle_action(InputAction.CANCEL_LESSON)
         )
+        self.companion.question_submitted.connect(self.ask)
 
         self.capture_engine = ScreenCapture()
         self.demo_manager = DemoManager(self.capture_engine)
@@ -284,6 +293,11 @@ class DesktopController:
         self.current_step_index = 0
         self.is_debug_mode = False
         self.worker = None
+        # Set by ask() just before the ASK action is routed, since actions are
+        # plain enum values and cannot carry the text themselves.
+        self._pending_question = ""
+        # When the hotkey last armed the question field; None when it has not.
+        self._question_armed_at = None
 
     def start(self):
         self.overlay.show()
@@ -305,8 +319,38 @@ class DesktopController:
                 logger.error("Failed to load initial image %r: %s", self.image_path, e)
                 self.image_path = None
 
+    def ask(self, question):
+        """Captures the screen and teaches an answer to this question.
+
+        The single entry point for a question from anywhere -- the companion's
+        field, the developer panel, or a script driving a demo. A blank
+        question becomes the companion's default rather than a cancel.
+        """
+        self._pending_question = (question or "").strip() or DEFAULT_QUESTION
+        self._question_armed_at = None
+        self.input_manager.handle_action(InputAction.ASK)
+        # Dispatch is synchronous, so the branch has read it by now. If the
+        # guard dropped the action instead, nothing should linger for later.
+        self._pending_question = ""
+
     def _on_input_action(self, action: InputAction):
         if action == InputAction.CAPTURE_SCREEN:
+            # The hotkey puts the cursor in the question field. Pressed again
+            # while the cursor is already there, it asks with whatever has
+            # been typed, so hotkey-hotkey is the fastest path to a lesson.
+            armed = (
+                self._question_armed_at is not None
+                and time.monotonic() - self._question_armed_at < HOTKEY_ASK_WINDOW_SECONDS
+            )
+            if armed or self.companion.question_has_focus():
+                self.companion.submit_question()
+            else:
+                self.companion.focus_question()
+                self._question_armed_at = time.monotonic()
+
+        elif action == InputAction.ASK:
+            question = self._pending_question
+            self._pending_question = ""
             if self.ui.chk_fake_demo.isChecked():
                 demo_id = self.ui.demo_dropdown.currentData()
                 if demo_id:
@@ -339,16 +383,7 @@ class DesktopController:
                 self.ui.lbl_status.setText("Ready.")
                 return
 
-            # Step 2: Question Popup
-            question, ok = QInputDialog.getText(
-                self.ui, "ClickTutor", "Ask a question about the screen:"
-            )
-            if not ok or not question.strip():
-                self.input_manager.set_state(TutorState.IDLE)
-                self.ui.lbl_status.setText("Ready.")
-                return
-
-            # Step 3: Analyze. OCR and Gemini both run on the worker thread,
+            # Step 2: Analyze. OCR and Gemini both run on the worker thread,
             # so the UI stays responsive from here on.
             self.companion.set_question(question)
             self.input_manager.set_state(TutorState.ANALYZING)

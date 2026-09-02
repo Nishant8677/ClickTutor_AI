@@ -5,17 +5,21 @@ surface. It renders from TutorState rather than being told what to display by
 each call site, so it cannot drift out of sync with what the tutor is actually
 doing.
 
-Deliberately not built here: chat, settings, themes, lesson history. Those are
-out of scope for Phase 3.
+Narrated lessons, stage 1: the question is typed here rather than in a modal
+dialog after the capture. The hotkey focuses the field; Enter asks. See
+docs/narrated-lessons-plan.md.
+
+Deliberately not built here: chat, settings, themes, lesson history.
 """
 
 from __future__ import annotations
 
-from PyQt6.QtCore import QPoint, Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import QEvent, QPoint, Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -38,6 +42,11 @@ _CONTENT_WIDTH = _WIDTH - (_PADDING * 2)
 _MARGIN = 24
 _THINKING_INTERVAL_MS = 400
 
+# Asked when the learner presses the hotkey or Enter with nothing typed. A
+# blank question used to cancel the capture, which made the fastest path -- hit
+# the hotkey, see what this is -- the one that did nothing.
+DEFAULT_QUESTION = "Explain what I am looking at."
+
 # Explanations are clipped mid-sentence if they overflow, which looks broken.
 # Truncating explicitly is honest about it, and a companion is not the place
 # for an essay -- the overlay is doing the pointing.
@@ -54,6 +63,15 @@ _STYLE = """
 #title  { color: #ffffff; font-size: 15px; font-weight: bold; }
 #body   { color: #d7d7db; font-size: 12px; }
 #counter { color: #9aa0a6; font-size: 11px; }
+QLineEdit {
+    background-color: rgba(255, 255, 255, 18);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 40);
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+QLineEdit:focus { border: 1px solid #8ab4f8; }
 QPushButton {
     background-color: rgba(255, 255, 255, 22);
     color: #ffffff;
@@ -94,6 +112,9 @@ class FloatingCompanion(QWidget):
     next_requested = pyqtSignal()
     prev_requested = pyqtSignal()
     dismiss_requested = pyqtSignal()
+    # Carries the question to ask. Never empty: a blank field submits
+    # DEFAULT_QUESTION.
+    question_submitted = pyqtSignal(str)
 
     def __init__(self, screen=None) -> None:
         super().__init__()
@@ -176,6 +197,24 @@ class FloatingCompanion(QWidget):
         self.nav_widget.setLayout(nav)
         layout.addWidget(self.nav_widget)
 
+        ask = QHBoxLayout()
+        ask.setSpacing(8)
+        self.question_input = QLineEdit()
+        self.question_input.setPlaceholderText("Ask about the screen, or press Enter")
+        self.question_input.returnPressed.connect(self.submit_question)
+        # Escape inside the field should give the field up, not dismiss the
+        # lesson behind it; the companion's own Escape handling does that.
+        self.question_input.installEventFilter(self)
+        ask.addWidget(self.question_input, stretch=1)
+
+        self.btn_ask = QPushButton("Ask")
+        self.btn_ask.clicked.connect(self.submit_question)
+        ask.addWidget(self.btn_ask)
+
+        self.ask_widget = QWidget()
+        self.ask_widget.setLayout(ask)
+        layout.addWidget(self.ask_widget)
+
         self.setLayout(layout)
 
     def _move_to_default_corner(self) -> None:
@@ -222,6 +261,9 @@ class FloatingCompanion(QWidget):
         teaching = state in _LESSON_STATES
 
         self.nav_widget.setVisible(teaching)
+        # While the tutor is working a new question would be dropped by the
+        # state guard anyway, so do not offer the field.
+        self.ask_widget.setVisible(not busy)
 
         if busy:
             self.lbl_status.setText("CAPTURING" if state == TutorState.CAPTURING else "THINKING")
@@ -234,8 +276,8 @@ class FloatingCompanion(QWidget):
         else:
             self._stop_thinking()
             self.lbl_status.setText("READY")
-            self.lbl_title.setText("Press Ctrl+Shift+A")
-            self.lbl_body.setText("Ask about anything on your screen.")
+            self.lbl_title.setText("Type a question, or press Ctrl+Shift+A")
+            self.lbl_body.setText("Enter asks about what is on your screen.")
             self.lbl_counter.setText("")
             self._question = ""
             self.lbl_question.setVisible(False)
@@ -267,6 +309,39 @@ class FloatingCompanion(QWidget):
         self.btn_prev.setEnabled(index > 0)
         self.btn_next.setEnabled(index < total - 1)
         self._apply_geometry()
+
+    # ------------------------------------------------------------- asking
+
+    def focus_question(self) -> None:
+        """Puts the cursor in the question field, e.g. from the hotkey."""
+        if not self.isVisible():
+            self.show()
+        self.activateWindow()
+        self.raise_()
+        self.question_input.setFocus(Qt.FocusReason.ShortcutFocusReason)
+
+    def question_has_focus(self) -> bool:
+        return self.question_input.hasFocus()
+
+    def submit_question(self) -> None:
+        """Emits the typed question, or the default when nothing was typed."""
+        if not self.ask_widget.isVisibleTo(self):
+            return
+        question = self.question_input.text().strip() or DEFAULT_QUESTION
+        self.question_input.clear()
+        self.question_input.clearFocus()
+        self.question_submitted.emit(question)
+
+    def eventFilter(self, watched, event) -> bool:
+        if (
+            watched is self.question_input
+            and event.type() == QEvent.Type.KeyPress
+            and event.key() == Qt.Key.Key_Escape
+        ):
+            self.question_input.clear()
+            self.question_input.clearFocus()
+            return True
+        return super().eventFilter(watched, event)
 
     def show_message(self, status: str, title: str, body: str = "") -> None:
         """Shows a one-off message, e.g. an error the user should see."""
