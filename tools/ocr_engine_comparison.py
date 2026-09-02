@@ -1,4 +1,4 @@
-"""Compares Tesseract against Florence-2 on screens Tesseract reads badly.
+"""Compares Tesseract against a candidate OCR engine on screens it reads badly.
 
 The locator experiments established that OCR wins on readable screens and a
 vision model wins on unreadable ones. That framing assumes OCR quality is
@@ -19,9 +19,11 @@ close their best line comes to it.
                       grounding requires
   similarity  < 0.5   the engine did not read that text in any useful sense
 
-    python tools/ocr_engine_comparison.py
+    python tools/ocr_engine_comparison.py                     # Florence-2 on fal
+    python tools/ocr_engine_comparison.py --engine nemotron   # Nemotron OCR v2, local
 
-Writes benchmarks/ocr_engine_comparison.json. Needs FAL_KEY.
+Writes benchmarks/ocr_engine_comparison.json. Florence needs FAL_KEY; Nemotron
+needs the nemotron_ocr package and a CUDA build of torch in the environment.
 """
 
 from __future__ import annotations
@@ -31,6 +33,7 @@ import json
 import logging
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 from statistics import mean, median
 
@@ -38,8 +41,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from PIL import Image  # noqa: E402
 
+from src import florence_ocr, nemotron_ocr  # noqa: E402
 from src.console import configure_stdio  # noqa: E402
-from src.florence_ocr import FlorenceError, read_regions  # noqa: E402
+from src.florence_ocr import TextRegion  # noqa: E402
 from src.ocr_locator import (  # noqa: E402
     build_words,
     extract_ocr_data,
@@ -59,6 +63,23 @@ GROUND_TRUTH = OUTPUT_DIR / "hostile_locator.json"
 # from the truth is no longer the phrase a reader sees on screen.
 USABLE_SIMILARITY = 0.8
 FAILED_SIMILARITY = 0.5
+
+# Each candidate reads an image into the same TextRegion shape, so the scorer
+# does not know which one it is measuring. The label goes into the results so
+# the file says which engine the numbers belong to.
+ENGINES: dict[str, tuple[Callable[[Image.Image], list[TextRegion]], str, type[Exception]]] = {
+    "florence": (
+        florence_ocr.read_regions,
+        "fal-ai/florence-2-large/ocr-with-region",
+        florence_ocr.FlorenceError,
+    ),
+    "nemotron": (
+        nemotron_ocr.read_regions,
+        f"nvidia/nemotron-ocr-v2 local, lang={nemotron_ocr.DEFAULT_LANG}, "
+        f"merge_level={nemotron_ocr.DEFAULT_MERGE_LEVEL}",
+        nemotron_ocr.NemotronError,
+    ),
+}
 
 
 def best_match(fragment: str, lines: list[str]) -> float:
@@ -90,8 +111,9 @@ def verified_fragments() -> dict[str, list[str]]:
     return truth
 
 
-def compare(path: Path, fragments: list[str]) -> dict:
-    """Scores both engines against the known-visible phrases for one image."""
+def compare(path: Path, fragments: list[str], engine: str) -> dict:
+    """Scores Tesseract and the candidate against the known-visible phrases."""
+    read_regions = ENGINES[engine][0]
     ocr_data = extract_ocr_data(str(path))
     words = build_words(ocr_data)
     tesseract_lines = [text.strip() for text in get_line_texts(words).values() if text.strip()]
@@ -100,8 +122,8 @@ def compare(path: Path, fragments: list[str]) -> dict:
     image = Image.open(path)
     started = time.perf_counter()
     regions = read_regions(image)
-    florence_ms = (time.perf_counter() - started) * 1000
-    florence_lines = [region.text for region in regions]
+    candidate_ms = (time.perf_counter() - started) * 1000
+    candidate_lines = [region.text for region in regions]
 
     per_fragment = []
     for fragment in fragments:
@@ -109,7 +131,7 @@ def compare(path: Path, fragments: list[str]) -> dict:
             {
                 "fragment": fragment,
                 "tesseract": best_match(fragment, tesseract_lines),
-                "florence": best_match(fragment, florence_lines),
+                engine: best_match(fragment, candidate_lines),
             }
         )
 
@@ -117,15 +139,15 @@ def compare(path: Path, fragments: list[str]) -> dict:
         "image": str(path),
         "tesseract_mean_confidence": tesseract_confidence,
         "tesseract_lines": len(tesseract_lines),
-        "florence_regions": len(regions),
-        "florence_ms": florence_ms,
+        f"{engine}_regions": len(regions),
+        f"{engine}_ms": candidate_ms,
         "fragments": per_fragment,
         "tesseract_sample": tesseract_lines[:3],
-        "florence_sample": florence_lines[:3],
+        f"{engine}_sample": candidate_lines[:3],
     }
 
 
-def summarise(records: list[dict]) -> dict:
+def summarise(records: list[dict], engine: str) -> dict:
     scores = [f for record in records for f in record["fragments"]]
     if not scores:
         return {}
@@ -142,8 +164,8 @@ def summarise(records: list[dict]) -> dict:
     return {
         "fragments_scored": len(scores),
         "tesseract": block("tesseract"),
-        "florence": block("florence"),
-        "florence_ms": mean(r["florence_ms"] for r in records),
+        engine: block(engine),
+        f"{engine}_ms": mean(r[f"{engine}_ms"] for r in records),
     }
 
 
@@ -170,8 +192,16 @@ def main() -> int:
         help="JSON of hand-transcribed phrases keyed by image path; "
         "defaults to the hand-scored hostile run",
     )
+    parser.add_argument(
+        "--engine",
+        choices=sorted(ENGINES),
+        default="florence",
+        help="candidate engine to score against Tesseract (default: florence)",
+    )
     parser.add_argument("--out", default="ocr_engine_comparison.json", help="results filename")
     args = parser.parse_args()
+    engine = args.engine
+    engine_label, engine_error = ENGINES[engine][1:]
 
     if args.ground_truth:
         by_path = transcribed_fragments(args.ground_truth)
@@ -191,9 +221,9 @@ def main() -> int:
             logger.error("Ground truth names %s, which does not exist", path)
             continue
         try:
-            records.append(compare(path, fragments))
-        except FlorenceError as exc:
-            logger.error("Florence failed on %s: %s", path.name, exc)
+            records.append(compare(path, fragments, engine))
+        except engine_error as exc:
+            logger.error("%s failed on %s: %s", engine, path.name, exc)
             continue
         logger.info("%s: %s fragments scored", path.name, len(fragments))
 
@@ -203,7 +233,7 @@ def main() -> int:
 
     results = {
         "environment": environment(),
-        "engine": "fal-ai/florence-2-large/ocr-with-region",
+        "engine": engine_label,
         "ground_truth_source": source,
         "method": (
             "Ground truth is the hand-verified fragments from "
@@ -212,7 +242,7 @@ def main() -> int:
             "anchor resolution."
         ),
         "usable_similarity": USABLE_SIMILARITY,
-        "summary": summarise(records),
+        "summary": summarise(records, engine),
         "per_image": records,
     }
 
@@ -224,13 +254,13 @@ def main() -> int:
     s = results["summary"]
     print(f"\n{'engine':12} {'mean sim':>9} {'median':>8} {'usable >=0.8':>13} {'failed <0.5':>12}")
     print("-" * 60)
-    for engine in ("tesseract", "florence"):
-        b = s[engine]
+    for name in ("tesseract", engine):
+        b = s[name]
         print(
-            f"{engine:12} {b['mean_similarity']:>9.3f} {b['median_similarity']:>8.3f} "
+            f"{name:12} {b['mean_similarity']:>9.3f} {b['median_similarity']:>8.3f} "
             f"{b['usable']:>8}/{s['fragments_scored']:<4} {b['failed']:>7}/{s['fragments_scored']}"
         )
-    print(f"\nFlorence call: {s['florence_ms']:.0f}ms mean")
+    print(f"\n{engine} call: {s[f'{engine}_ms']:.0f}ms mean")
     return 0
 
 

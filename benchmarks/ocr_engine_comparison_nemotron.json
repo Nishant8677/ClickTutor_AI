@@ -1,0 +1,302 @@
+{
+    "environment": {
+        "timestamp_utc": "2026-09-02T11:56:28+00:00",
+        "os": "Linux 6.6.87.2-microsoft-standard-WSL2",
+        "machine": "x86_64",
+        "python": "3.12.3",
+        "qt": "6.11.0",
+        "qt_platform": "offscreen",
+        "sdk": "google-genai 2.17.0",
+        "tesseract": "5.3.4",
+        "model": "gemini-3.1-flash-lite"
+    },
+    "engine": "nvidia/nemotron-ocr-v2 local, lang=en, merge_level=sentence",
+    "ground_truth_source": "benchmarks/hostile_locator.json",
+    "method": "Ground truth is the hand-verified fragments from hostile_locator.json. Each engine is scored on how closely its best line matches, so this measures reading quality rather than anchor resolution.",
+    "usable_similarity": 0.8,
+    "summary": {
+        "fragments_scored": 23,
+        "tesseract": {
+            "mean_similarity": 0.5984486407693445,
+            "median_similarity": 0.5161290322580645,
+            "usable": 7,
+            "failed": 10
+        },
+        "nemotron": {
+            "mean_similarity": 0.9139054830565799,
+            "median_similarity": 1.0,
+            "usable": 21,
+            "failed": 2
+        },
+        "nemotron_ms": 1296.1537087502393
+    },
+    "per_image": [
+        {
+            "image": "benchmarks/hostile/book_page_blackbg.png",
+            "tesseract_mean_confidence": 71.18611987381703,
+            "tesseract_lines": 51,
+            "nemotron_regions": 195,
+            "nemotron_ms": 8777.347864000149,
+            "fragments": [
+                {
+                    "fragment": "ACTS 1:21",
+                    "tesseract": 0.375,
+                    "nemotron": 1.0
+                },
+                {
+                    "fragment": "ACTS 2:21",
+                    "tesseract": 0.375,
+                    "nemotron": 1.0
+                },
+                {
+                    "fragment": "157",
+                    "tesseract": 0.3333333333333333,
+                    "nemotron": 1.0
+                }
+            ],
+            "tesseract_sample": [
+                "7 tb",
+                "eleven, lifted up his volee andl sect we",
+                "them, Ye men of Judaea, and all ye due"
+            ],
+            "nemotron_sample": [
+                "6",
+                "ACTS 1:21",
+                "and let no man dwell therein: and his"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/book_page_whitebg.png",
+            "tesseract_mean_confidence": 75.30337078651685,
+            "tesseract_lines": 37,
+            "nemotron_regions": 57,
+            "nemotron_ms": 224.47830000055546,
+            "fragments": [
+                {
+                    "fragment": "STRAND",
+                    "tesseract": 0.6153846153846154,
+                    "nemotron": 1.0
+                },
+                {
+                    "fragment": "DANIEL KRAUS",
+                    "tesseract": 0.3225806451612903,
+                    "nemotron": 0.88
+                },
+                {
+                    "fragment": "Angel Down",
+                    "tesseract": 0.375,
+                    "nemotron": 0.8571428571428571
+                }
+            ],
+            "tesseract_sample": [
+                "bite. and",
+                "it everything",
+                "Buttural grog"
+            ],
+            "nemotron_sample": [
+                "STRAND",
+                "I5a DANIEL KRAUS",
+                "Angel Down 155"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/darkMode_ui.png",
+            "tesseract_mean_confidence": 78.15254237288136,
+            "tesseract_lines": 27,
+            "nemotron_regions": 76,
+            "nemotron_ms": 158.38692099987384,
+            "fragments": [
+                {
+                    "fragment": "Main Dashboard",
+                    "tesseract": 1.0,
+                    "nemotron": 1.0
+                },
+                {
+                    "fragment": "James Martinia Junior",
+                    "tesseract": 0.8484848484848485,
+                    "nemotron": 0.8484848484848485
+                },
+                {
+                    "fragment": "Overview",
+                    "tesseract": 0.6956521739130435,
+                    "nemotron": 1.0
+                }
+            ],
+            "tesseract_sample": [
+                "q Home Settings",
+                "Main Dashboard",
+                "Overview Account Services"
+            ],
+            "nemotron_sample": [
+                "Jessica Lofez",
+                "Home",
+                "Settings"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/diagram_with_rotated_labels.png",
+            "tesseract_mean_confidence": 42.52777777777778,
+            "tesseract_lines": 20,
+            "nemotron_regions": 16,
+            "nemotron_ms": 137.47181199960323,
+            "fragments": [
+                {
+                    "fragment": "Angle: 0",
+                    "tesseract": 1.0,
+                    "nemotron": 1.0
+                },
+                {
+                    "fragment": "Angle: 45",
+                    "tesseract": 0.7692307692307693,
+                    "nemotron": 1.0
+                },
+                {
+                    "fragment": "Angle: 90",
+                    "tesseract": 0.9230769230769231,
+                    "nemotron": 1.0
+                }
+            ],
+            "tesseract_sample": [
+                "Angle: 0",
+                "S ThisisaLabel",
+                "4"
+            ],
+            "nemotron_sample": [
+                "Angle: 0",
+                "Angle: 315",
+                "This is a Label"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/handwritten.png",
+            "tesseract_mean_confidence": 21.7,
+            "tesseract_lines": 7,
+            "nemotron_regions": 31,
+            "nemotron_ms": 158.93984400008776,
+            "fragments": [
+                {
+                    "fragment": "The Trial of Strength",
+                    "tesseract": 0.3448275862068966,
+                    "nemotron": 0.46511627906976744
+                },
+                {
+                    "fragment": "Moral: Intelligence is strength",
+                    "tesseract": 0.3684210526315789,
+                    "nemotron": 0.8148148148148148
+                },
+                {
+                    "fragment": "A long time ago",
+                    "tesseract": 0.43478260869565216,
+                    "nemotron": 0.43478260869565216
+                }
+            ],
+            "tesseract_sample": [
+                "hy, bogst Mh, ce",
+                "ence wth, hen peut ste",
+                "desk orc, comb"
+            ],
+            "nemotron_sample": [
+                "The",
+                "2he travetters boly bud no anott",
+                "-he wind gattherd all heer Levee d"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/maths_integral.png",
+            "tesseract_mean_confidence": 67.58549222797927,
+            "tesseract_lines": 40,
+            "nemotron_regions": 154,
+            "nemotron_ms": 190.7037130004028,
+            "fragments": [
+                {
+                    "fragment": "INTEGRALS AND APPLICATION OF INTEGRALS",
+                    "tesseract": 1.0,
+                    "nemotron": 1.0
+                },
+                {
+                    "fragment": "CBSE 2020",
+                    "tesseract": 0.5161290322580645,
+                    "nemotron": 0.8
+                },
+                {
+                    "fragment": "Pinaki Chakraborty KVS",
+                    "tesseract": 0.95,
+                    "nemotron": 1.0
+                }
+            ],
+            "tesseract_sample": [
+                "INTEGRALS AND APPLICATION OF INTEGRALS",
+                "{x2e* dx is equal to [CBSE 2020 (65/5/1)]",
+                "(a) se\" +C (b) se+C e+ (d) Fe\" +C"
+            ],
+            "nemotron_sample": [
+                "INTEGRALS AND APPLICATION OF INTEGRALS",
+                "1",
+                "xx\u00b2 e\" dx is equal to"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/text_over_image.png",
+            "tesseract_mean_confidence": 94.99152542372882,
+            "tesseract_lines": 12,
+            "nemotron_regions": 14,
+            "nemotron_ms": 137.54945400069118,
+            "fragments": [
+                {
+                    "fragment": "Book a Session",
+                    "tesseract": 1.0,
+                    "nemotron": 1.0
+                },
+                {
+                    "fragment": "CALL US",
+                    "tesseract": 0.2222222222222222,
+                    "nemotron": 1.0
+                },
+                {
+                    "fragment": "EMAIL US",
+                    "tesseract": 0.22641509433962265,
+                    "nemotron": 1.0
+                }
+            ],
+            "tesseract_sample": [
+                "This is a great space to write a long text about your",
+                "company and your services. You can use this space to go",
+                "into a little more detail about your company. Talk about"
+            ],
+            "nemotron_sample": [
+                "This is a great space to write a long text about your",
+                "company and your services. You can use this space to go",
+                "into a little more detail about your company, Talk about"
+            ]
+        },
+        {
+            "image": "benchmarks/hostile/whiteboard.png",
+            "tesseract_mean_confidence": 32.35579514824798,
+            "tesseract_lines": 39,
+            "nemotron_regions": 113,
+            "nemotron_ms": 584.3517620005514,
+            "fragments": [
+                {
+                    "fragment": "Control of gene expression",
+                    "tesseract": 0.5581395348837209,
+                    "nemotron": 0.9565217391304348
+                },
+                {
+                    "fragment": "recombinant DNA",
+                    "tesseract": 0.5106382978723404,
+                    "nemotron": 0.9629629629629629
+                }
+            ],
+            "tesseract_sample": [
+                "Vv_",
+                "If oh?",
+                "COWIE OF Bete exPve s10N:"
+            ],
+            "nemotron_sample": [
+                "swent CissMinE",
+                "BAS sweed sPPuad",
+                "CUSERN tonnts DNJA"
+            ]
+        }
+    ]
+}
