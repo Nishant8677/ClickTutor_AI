@@ -28,7 +28,9 @@ The short version, if you read nothing else:
 - On readable screens OCR beats a vision model 97% to 76%. On screens OCR cannot
   read, the vision model wins 96% to 29%. Neither wins outright.
 - Replacing Tesseract with Florence-2 helps more than replacing the locator
-  does, and costs 12.8 seconds an image.
+  does, and costs 12.8 seconds an image. A local model, Nemotron OCR v2, then
+  did better still on the unreadable screens at under a second an image, which
+  moved the blocker from privacy to packaging.
 - Three of my predictions along the way were wrong, including one where I
   recommended skipping the experiment that turned out to matter most.
 
@@ -367,6 +369,46 @@ numbers toward vision-family readers — and Florence is one.
 Nothing here is wired into the application. Sending screenshots to a
 third-party host is a privacy decision, not a benchmark's call.
 
+### A local engine removes the privacy cost and adds a packaging one
+
+If the objection to Florence is where the screen goes, the test is a reader
+that runs on the machine. NVIDIA's Nemotron OCR v2 is small enough for a 4GB
+laptop GPU (54M parameters in the English model), so I built it in WSL and
+scored it with the same harness, same ground truth, same Tesseract:
+
+| | Tesseract | Florence-2 (hosted) | Nemotron OCR v2 (local) |
+|---|---|---|---|
+| Readable (21 phrases) | 0.886 mean, 16/21 usable, 0 failures | 0.912 mean, 18/21 usable, 0 failures | 0.891 mean, 17/21 usable, **0 failures** |
+| Unreadable (23 phrases) | 0.598 mean, 7/23 usable, 10 failures | 0.832 mean, 19/23 usable, 4 failures | **0.914 mean, 21/23 usable, 2 failures** |
+
+On the unreadable screens it is ahead of the hosted model. Both of its
+failures are on the one handwriting image; it reads the whiteboard at 0.96
+where Tesseract manages 0.5, and the dark book page and the text-over-photo
+buttons perfectly where Tesseract fails outright. On readable screens it is
+level with Tesseract: the four phrases it scores below usable are long code
+and prose lines that its line merging splits differently from the
+transcription, not misread characters.
+
+Speed changes the argument. Warm calls take 140 to 600 milliseconds a screen
+against Florence's 13 seconds. The mean times in the results files, about 1.3
+seconds, are inflated by an 8-second CUDA warm-up on the first image of each
+run. Peak GPU memory was 1.8GB.
+
+What it costs instead: the package compiles a CUDA extension at install and
+pins torch 2.9 (newer torch headers require C++20; the package builds with
+C++17), so it lives in its own 6GB environment with a system CUDA toolkit. It
+requires Python 3.12 and its authors list only Linux, while the desktop app
+runs from a Python 3.11 environment on Windows. And it needs an NVIDIA GPU.
+Tesseract needs none of that.
+
+So the finding is that a local reader exists that beats the hosted one where
+it matters, roughly fifty times faster, and that wiring it is a packaging
+project rather than a routing change: a sidecar process or a Linux-only path.
+It stays unwired for the same reason Florence does — the benchmark says what
+it reads, not what the product should depend on. The adapter is
+`src/nemotron_ocr.py`, shaped like the Florence one, and the harness takes
+`--engine nemotron`.
+
 ---
 
 ## The part I would put first in an interview
@@ -468,7 +510,8 @@ history with the reasoning that produced it.
 | Pass-vs-verdict table, 1.12 repair calls per lesson | `benchmarks/locator_comparison.json` |
 | Vision 23/24 on unreadable screens, OCR 7/24 | `benchmarks/hostile_locator.json` |
 | Model-tier comparison on identical anchors | `benchmarks/locator_comparison_flash36.json` |
-| Florence-2 vs Tesseract, both corpora | `benchmarks/ocr_engine_comparison*.json` |
+| Florence-2 vs Tesseract, both corpora | `benchmarks/ocr_engine_comparison.json`, `benchmarks/ocr_engine_comparison_readable.json` |
+| Nemotron OCR v2 vs Tesseract, both corpora | `benchmarks/ocr_engine_comparison_nemotron.json`, `benchmarks/ocr_engine_comparison_nemotron_readable.json` |
 | Hand-transcribed ground truth | `benchmarks/readable_ground_truth.json` |
 | Held-out validation, 26 anchors on 7 unseen screens | `benchmarks/router_validation.json` |
 | SDK, Tesseract and model versions for every run | each file's `environment` block |
@@ -480,6 +523,7 @@ python tools/benchmark.py --accuracy-only
 python tools/locator_experiment.py
 python tools/hostile_locator_experiment.py
 python tools/ocr_engine_comparison.py --ground-truth benchmarks/readable_ground_truth.json
+python tools/ocr_engine_comparison.py --engine nemotron --ground-truth benchmarks/readable_ground_truth.json
 python tools/router_validation.py
 ```
 
