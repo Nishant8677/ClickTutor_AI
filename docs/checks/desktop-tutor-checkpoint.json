@@ -1,0 +1,47 @@
+{
+  "scope": "Local Git checkpoint of the desktop tutor working tree; functional checks, not performance or accuracy benchmarks.",
+  "base_commit": "f1b7e20765a107330dd73711070aed3df82d09ef",
+  "environment": {
+    "test_platform": "WSL Ubuntu",
+    "python": "3.12.3",
+    "qt_platform": "offscreen"
+  },
+  "commands": {
+    "pytest": "QT_QPA_PLATFORM=offscreen venv/bin/python -m pytest -o addopts='--strict-markers' -q",
+    "ruff": "venv/bin/ruff check .",
+    "mypy": "venv/bin/mypy src/attention/coordinates.py src/lesson_validator.py src/box_metrics.py src/ocr_occurrences.py"
+  },
+  "checks": [
+    {
+      "name": "pytest",
+      "exit_code": 0,
+      "output": "........................................................................ [ 13%]\n........................................................................ [ 27%]\n........................................................................ [ 40%]\n........................................................................ [ 54%]\n........................................................................ [ 67%]\n........................................................................ [ 81%]\n........................................................................ [ 94%]\n............................                                             [100%]\n532 passed in 4.15s"
+    },
+    {
+      "name": "ruff",
+      "exit_code": 0,
+      "output": "All checks passed!"
+    },
+    {
+      "name": "mypy",
+      "exit_code": 0,
+      "output": "Success: no issues found in 4 source files"
+    }
+  ],
+  "owner_confirmation": {
+    "area_selection": "done its working properly",
+    "narration": "ok so its working",
+    "scope": "Owner-reported exercised flow only; no individually enumerated controls, monitor configurations or timing measurements."
+  },
+  "prior_native_checks": {
+    "muted_sapi_service": "Passed natural completion and Stop through NarrationService with volume zero.",
+    "silent_controller": "Passed deferred autoplay, preserved step on completion, Replay, stale callbacks, Next, Stop, Voice and cancelled selection with fake speech and offline lesson data."
+  },
+  "limitations": [
+    "No performance or accuracy benchmark was run for this checkpoint.",
+    "Audible latency targets and arbitrary mixed-DPI support are not established.",
+    "Study-session memory and typed follow-ups are planned but not implemented.",
+    "Existing historical benchmark claims still require evidence reconciliation."
+  ],
+  "live_tutor_requests_used_for_checks": false
+}

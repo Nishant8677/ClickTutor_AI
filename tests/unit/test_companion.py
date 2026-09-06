@@ -4,6 +4,7 @@ Runs under the offscreen platform plugin, so no display is required.
 """
 
 import pytest
+from PyQt6.QtCore import QRect
 from PyQt6.QtWidgets import QApplication
 
 from src.desktop.companion import DEFAULT_QUESTION, FloatingCompanion
@@ -142,6 +143,75 @@ class TestGeometryStability:
         companion.show_step(self.LONG, 0, 4)
 
         assert companion.width() == 380
+
+
+class _DeletedScreen:
+    """Mimics a QScreen whose C++ object Qt deleted when a monitor left."""
+
+    def availableGeometry(self):
+        raise RuntimeError("wrapped C/C++ object of type QScreen has been deleted")
+
+
+class _SurvivingScreen:
+    def __init__(self, area: QRect) -> None:
+        self.area = area
+
+    def availableGeometry(self):
+        return self.area
+
+
+class TestDeletedScreenRecovery:
+    """The retained QScreen can die between selection and the next re-render.
+
+    _end_selection and stale-selection reporting both reach _apply_geometry
+    from a Qt slot, so the deleted wrapper must never raise there, and the
+    recovery message has to land on a screen that still exists.
+    """
+
+    SURVIVOR = QRect(2000, 1000, 640, 480)
+
+    @pytest.fixture
+    def orphaned(self, companion, monkeypatch):
+        survivor = _SurvivingScreen(self.SURVIVOR)
+        companion._screen_target = _DeletedScreen()
+        monkeypatch.setattr(companion, "screen", lambda: _DeletedScreen())
+        monkeypatch.setattr(QApplication, "primaryScreen", staticmethod(lambda: survivor))
+        return companion, survivor
+
+    def _assert_inside_survivor(self, companion):
+        assert self.SURVIVOR.contains(companion.geometry())
+
+    def test_apply_state_survives_a_deleted_target(self, orphaned):
+        companion, survivor = orphaned
+        companion.set_selected_area("640 × 400")
+
+        companion.apply_state(TutorState.IDLE)
+
+        assert companion._screen_target is survivor
+        self._assert_inside_survivor(companion)
+        # Moving the panel says nothing about whether the crop is still valid.
+        assert companion.has_selected_area()
+
+    def test_show_message_survives_a_deleted_target(self, orphaned):
+        companion, survivor = orphaned
+
+        companion.show_message("AREA LOST", "That screen was disconnected")
+
+        assert companion.lbl_title.text() == "That screen was disconnected"
+        assert companion._screen_target is survivor
+        self._assert_inside_survivor(companion)
+
+    def test_no_surviving_screen_skips_repositioning(self, companion, monkeypatch):
+        companion._screen_target = _DeletedScreen()
+        monkeypatch.setattr(companion, "screen", lambda: None)
+        monkeypatch.setattr(QApplication, "primaryScreen", staticmethod(lambda: _DeletedScreen()))
+        before = (companion.x(), companion.y())
+
+        companion.show_message("AREA LOST", "That screen was disconnected")
+        companion.apply_state(TutorState.IDLE)
+
+        assert companion._screen_target is None
+        assert (companion.x(), companion.y()) == before
 
 
 class TestExplanationFitting:
@@ -304,19 +374,49 @@ class TestQuestionField:
 
         assert seen == []
 
-    def test_escape_in_the_field_clears_it_without_dismissing(self, companion, qt_app):
+    def test_escape_in_the_field_is_reported_once_and_acts_on_nothing(self, companion, qt_app):
+        # QLineEdit ignores Escape and would propagate it to the companion's
+        # own keyPressEvent, so without the filter one press reports twice.
+        # The draft is left alone: the controller decides what Escape means.
         from PyQt6.QtCore import QEvent, Qt
         from PyQt6.QtGui import QKeyEvent
 
-        dismissed = []
-        companion.dismiss_requested.connect(lambda: dismissed.append(True))
+        reported = []
+        companion.escape_pressed.connect(lambda: reported.append(True))
         companion.question_input.setText("half a quest")
 
         escape = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
         qt_app.sendEvent(companion.question_input, escape)
 
+        assert reported == [True]
+        assert companion.question_input.text() == "half a quest"
+
+    def test_auto_repeated_escape_is_not_reported(self, companion, qt_app):
+        from PyQt6.QtCore import QEvent, Qt
+        from PyQt6.QtGui import QKeyEvent
+
+        reported = []
+        companion.escape_pressed.connect(lambda: reported.append(True))
+
+        held = QKeyEvent(
+            QEvent.Type.KeyPress,
+            Qt.Key.Key_Escape,
+            Qt.KeyboardModifier.NoModifier,
+            "",
+            True,  # autorep
+        )
+        qt_app.sendEvent(companion.question_input, held)
+        qt_app.sendEvent(companion, held)
+
+        assert reported == []
+
+    def test_abandon_draft_clears_the_field(self, companion):
+        companion.question_input.setText("half a quest")
+
+        companion.abandon_draft()
+
         assert companion.question_input.text() == ""
-        assert dismissed == []
+        assert not companion.has_draft_text()
 
     def test_default_question_is_a_real_question(self):
         assert DEFAULT_QUESTION.strip()

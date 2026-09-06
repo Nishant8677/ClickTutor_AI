@@ -4,6 +4,11 @@ This is a thin adapter over :mod:`src.ocr_locator`. The six-pass matcher there
 is deliberately left alone -- it is well tuned and its pass ordering matters --
 so this module adds only what the interface needs: a confidence score and a
 threshold below which it declines to answer.
+
+It answers only on a whole-phrase match. This adapter is what the desktop
+renderer falls back to for steps that carry no engine-decided location, so if
+it used the permissive search a word-level match the engine had already
+refused would reappear at draw time.
 """
 
 from __future__ import annotations
@@ -12,7 +17,7 @@ import logging
 from typing import Any
 
 from src.locator.base import Box, Location
-from src.ocr_locator import build_words, find_text
+from src.ocr_locator import build_words, locate_trusted
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +65,12 @@ class OcrLocator:
         if not anchor or anchor.strip().upper() == "NONE":
             return None
 
-        box = find_text(ocr_data, anchor, context)
+        # Same trust boundary as LessonEngine._locate: a single-word match of
+        # a multi-word anchor is treated as a miss rather than a low-confidence
+        # hit, so a match the engine rejected cannot reappear when rendering.
+        box = locate_trusted(ocr_data, anchor, context)
         if not box:
-            logger.debug("OCR locator found no match for anchor %r", anchor)
+            logger.debug("OCR locator found no trusted match for anchor %r", anchor)
             return None
 
         confidence = self._confidence_for(ocr_data, box)

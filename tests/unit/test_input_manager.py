@@ -85,6 +85,26 @@ class TestCancelGuard:
         assert manager.dispatched == [InputAction.CANCEL_LESSON]
 
 
+class TestEscapeGuard:
+    @pytest.mark.parametrize("state", list(TutorState))
+    def test_escape_reaches_listeners_in_every_state(self, manager, state):
+        # A question can be drafted while IDLE, and only the listener can see
+        # the draft, so the manager cannot decide here whether Escape means
+        # "abandon the draft" or "cancel the lesson".
+        manager.set_state(state)
+
+        manager.handle_action(InputAction.ESCAPE)
+
+        assert manager.dispatched == [InputAction.ESCAPE]
+
+    def test_escape_is_not_translated_into_cancel(self, manager):
+        manager.set_state(TutorState.TEACHING)
+
+        manager.handle_action(InputAction.ESCAPE)
+
+        assert InputAction.CANCEL_LESSON not in manager.dispatched
+
+
 class TestNavigationGuard:
     @pytest.mark.parametrize("action", [InputAction.NEXT_STEP, InputAction.PREV_STEP])
     def test_navigation_requires_a_lesson_on_screen(self, manager, action):
@@ -102,13 +122,20 @@ class TestNavigationGuard:
 
 
 class TestDebugToggle:
-    @pytest.mark.parametrize("state", list(TutorState))
+    @pytest.mark.parametrize("state", [s for s in TutorState if s is not TutorState.SELECTING])
     def test_debug_toggle_is_always_available(self, manager, state):
         manager.set_state(state)
 
         manager.handle_action(InputAction.TOGGLE_DEBUG)
 
         assert manager.dispatched == [InputAction.TOGGLE_DEBUG]
+
+    def test_debug_toggle_is_blocked_while_selecting(self, manager):
+        manager.set_state(TutorState.SELECTING)
+
+        manager.handle_action(InputAction.TOGGLE_DEBUG)
+
+        assert manager.dispatched == []
 
 
 class TestStateTracking:

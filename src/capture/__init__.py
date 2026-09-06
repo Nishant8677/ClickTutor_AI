@@ -1,3 +1,8 @@
-from .screen_capture import ScreenCapture
+from .screen_capture import (
+    CaptureError,
+    CaptureSizeMismatchError,
+    RegionUnsupportedError,
+    ScreenCapture,
+)
 
-__all__ = ["ScreenCapture"]
+__all__ = ["CaptureError", "CaptureSizeMismatchError", "RegionUnsupportedError", "ScreenCapture"]

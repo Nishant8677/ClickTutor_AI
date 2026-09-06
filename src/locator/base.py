@@ -11,10 +11,37 @@ Kept free of Qt so it stays unit testable.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, TypedDict, runtime_checkable
 
 # A bounding box in captured-image pixels.
 Box = dict[str, int]
+
+# Key under which a lesson step carries the outcome of the engine's routed
+# lookup (trusted OCR, then a capped vision fallback). Three states matter:
+#
+#   step[STEP_LOCATION_KEY] is a StepLocation  -- a box the routing accepted
+#   step[STEP_LOCATION_KEY] is None            -- the routing declined; draw nothing
+#   the key is absent                          -- the step never went through the
+#                                                 engine (offline demos parse
+#                                                 lesson.json directly)
+#
+# The distinction exists because the renderer used to look every anchor up
+# again with the permissive matcher, so a word-level match the engine had
+# rejected came back at draw time, and a box the vision fallback had paid for
+# was lost. Only the third state permits a renderer to search on its own.
+STEP_LOCATION_KEY = "location"
+
+
+class StepLocation(TypedDict):
+    """A box the engine accepted for a step, and which locator produced it.
+
+    Kept as a plain dict rather than a :class:`Location` because steps travel
+    through Qt signals and Streamlit session state, and because the trusted
+    OCR path carries no confidence score worth inventing one for.
+    """
+
+    box: Box
+    source: str
 
 
 @dataclass(frozen=True)

@@ -6,12 +6,26 @@ import tempfile
 import mss
 from PIL import Image
 
+from src.attention.coordinates import validate_region
+
 logger = logging.getLogger(__name__)
 
 # wslpath is instant; the PowerShell bridge spawns a process and writes a
 # full-screen PNG, so it gets a wider budget. Neither may block forever.
 SUBPROCESS_TIMEOUT_SECONDS = 10
 POWERSHELL_TIMEOUT_SECONDS = 30
+
+
+class CaptureError(RuntimeError):
+    """A screen grab could not honour what was asked of it."""
+
+
+class RegionUnsupportedError(CaptureError):
+    """An explicit region was requested on a path that can only grab full screens."""
+
+
+class CaptureSizeMismatchError(CaptureError):
+    """The grabbed image is not the size the requested region describes."""
 
 
 class ScreenCapture:
@@ -25,6 +39,10 @@ class ScreenCapture:
             return False
         return "WSL" in os.uname().release or os.path.exists("/run/WSL")
 
+    def supports_regions(self) -> bool:
+        """True when an explicit ``region`` will be honoured rather than refused."""
+        return not self._is_wsl()
+
     def capture(self, monitor_index: int = 1, region=None) -> Image.Image:
         """Captures the screen and returns a PIL Image in memory.
 
@@ -32,14 +50,29 @@ class ScreenCapture:
             monitor_index: Index into mss's monitor list, used when no explicit
                 region is given. Ignored on the WSL fallback path.
             region: Optional ``{"left", "top", "width", "height"}`` in physical
-                desktop pixels. Pass the bounds of the screen the overlay covers
-                so that capture and overlay describe the same area. Ignored on
-                the WSL fallback path, which always returns the Windows primary
-                screen.
+                desktop pixels, e.g. a screen's bounds or
+                :meth:`CaptureGeometry.region`. ``None`` means the whole
+                monitor. Anything else is validated before any grab; an empty
+                or malformed dict is an error, never "full screen".
 
         Returns:
-            An RGB PIL Image.
+            An RGB PIL Image exactly ``region`` in size when a region is given.
+
+        Raises:
+            ValueError: If ``region`` is not None and is malformed.
+            RegionUnsupportedError: If a region is requested on the WSL
+                fallback path, which can only grab the Windows primary screen.
+            CaptureSizeMismatchError: If the grabbed image's size differs from
+                the requested region.
         """
+        if region is not None:
+            region = validate_region(region)
+            if not self.supports_regions():
+                raise RegionUnsupportedError(
+                    "Region capture is not available on the WSL fallback path; "
+                    "it can only grab the full Windows primary screen"
+                )
+
         if self._is_wsl():
             # In WSL, mss cannot capture the Windows screen due to X11 boundaries.
             # We must use a powershell fallback for development.
@@ -95,7 +128,7 @@ class ScreenCapture:
                     logger.warning("Could not remove temp capture %r: %s", temp_path, exc)
         else:
             with mss.mss() as sct:
-                if region:
+                if region is not None:
                     monitor = region
                     logger.info(
                         "Native capture via mss of region %sx%s at (%s, %s)",
@@ -117,4 +150,11 @@ class ScreenCapture:
                 sct_img = sct.grab(monitor)
                 # Convert to PIL Image (mss returns BGRA)
                 img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
+                if region is not None and img.size != (region["width"], region["height"]):
+                    # Never hand back something else: geometry built for the
+                    # request would place every highlight against the wrong pixels.
+                    raise CaptureSizeMismatchError(
+                        f"Requested {region['width']}x{region['height']} but the grab "
+                        f"returned {img.width}x{img.height}"
+                    )
                 return img

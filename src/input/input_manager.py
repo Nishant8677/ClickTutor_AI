@@ -59,7 +59,14 @@ class InputManager(QObject):
             self.current_state.name,
         )
 
-        if action in (InputAction.CAPTURE_SCREEN, InputAction.ASK):
+        if action in (
+            InputAction.CAPTURE_SCREEN,
+            InputAction.ASK,
+            InputAction.SELECT_REGION,
+            InputAction.CLEAR_REGION,
+        ):
+            # Selecting shares the capture guard: it is refused while the tutor
+            # is busy and while a selection is already in progress.
             if self.current_state in _CAPTURE_READY_STATES:
                 self._dispatch(action)
             else:
@@ -73,6 +80,12 @@ class InputManager(QObject):
             if self.current_state != TutorState.IDLE:
                 self._dispatch(action)
 
+        elif action == InputAction.ESCAPE:
+            # Not state-guarded: a question can be drafted while IDLE, and
+            # whether Escape abandons a draft or cancels a lesson is decided
+            # by the listener, which is the only party that can see the draft.
+            self._dispatch(action)
+
         elif action in (InputAction.NEXT_STEP, InputAction.PREV_STEP):
             if self.current_state in _NAVIGABLE_STATES:
                 self._dispatch(action)
@@ -84,7 +97,12 @@ class InputManager(QObject):
                 )
 
         elif action == InputAction.TOGGLE_DEBUG:
-            self._dispatch(action)
+            # The selector covers the overlay; redrawing it underneath would
+            # change what the learner sees when the selector goes away.
+            if self.current_state is TutorState.SELECTING:
+                logger.debug("Ignored TOGGLE_DEBUG: an area is being selected")
+            else:
+                self._dispatch(action)
 
     def _dispatch(self, action: InputAction) -> None:
         for listener in self.listeners:

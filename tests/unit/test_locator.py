@@ -78,6 +78,21 @@ class TestLocate:
             result.confidence = 0.1
 
 
+class TestTrustBoundary:
+    def test_refuses_a_single_word_of_a_multi_word_anchor(self):
+        # "count" is on screen; "count of apples" is not. The permissive
+        # matcher would return the box for "count" alone, which was wrong in
+        # every measured case, and this adapter is the renderer's last resort
+        # for steps without a stored location -- so it must decline too.
+        assert OcrLocator().locate(CLEAN, "count of apples") is None
+
+    def test_still_accepts_the_whole_phrase(self):
+        result = OcrLocator().locate(CLEAN, "int count")
+
+        assert result is not None
+        assert result.box["left"] == pytest.approx(10, abs=2)
+
+
 class TestConfidence:
     def test_legible_text_scores_high(self):
         result = OcrLocator().locate(CLEAN, "count")

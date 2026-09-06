@@ -10,6 +10,7 @@ from src.lesson_validator import (
     VALID_EMPHASES,
     validate_lesson_steps,
 )
+from src.locator.base import STEP_LOCATION_KEY
 from src.ocr_locator import build_words, get_line_texts, locate_trusted
 from src.tutor import generate_content, response_text
 
@@ -350,13 +351,25 @@ EXPLANATION:
         Returns:
             A box in image pixels, or None if neither locator could place it.
         """
+        box, _ = self._locate_with_source(anchor, context)
+        return box
+
+    def _locate_with_source(self, anchor, context):
+        """Same routing as :meth:`_locate`, also naming which locator answered.
+
+        Returns:
+            ``(box, source)`` where source is ``"ocr"`` or ``"vision"``, or
+            ``(None, None)`` when the anchor stays unresolved.
+        """
         box = locate_trusted(self.ocr_data, anchor, context)
-        if box or self._vision_locator is None:
-            return box
+        if box:
+            return box, "ocr"
+        if self._vision_locator is None:
+            return None, None
 
         if self._vision_fallbacks >= MAX_VISION_FALLBACKS:
             logger.debug("Vision fallback budget spent; leaving %r unhighlighted", anchor)
-            return None
+            return None, None
 
         image = self.image_or_path
         if isinstance(image, str):
@@ -369,13 +382,28 @@ EXPLANATION:
             # A failed fallback must not take the lesson with it: the step
             # simply renders without a highlight, as it would have anyway.
             logger.warning("Vision fallback failed for %r: %s", anchor, exc)
-            return None
+            return None, None
 
-        if located.box:
-            logger.info("Located %r by vision after OCR declined", anchor)
-        return located.box
+        if not located.box:
+            return None, None
+        logger.info("Located %r by vision after OCR declined", anchor)
+        return located.box, "vision"
 
     def build_step_highlights(self, steps):
+        """Resolves each step's anchor once and records the outcome on the step.
+
+        The result is stored under STEP_LOCATION_KEY in captured-image pixels:
+        the accepted box and its source, or None when routing declined. The
+        desktop renderer draws from this record rather than searching again,
+        so a rejected weak match cannot resurface at draw time and a box the
+        vision fallback paid for is not thrown away. The stored None is the
+        authoritative answer for the step, including when the model wrote
+        NONE, and is deliberately distinct from the key being absent.
+
+        The highlighted image is still produced for path inputs, which is what
+        the Streamlit app displays; desktop captures are PIL images and get
+        only the location.
+        """
         highlighted_steps = []
         self._vision_fallbacks = 0
 
@@ -383,9 +411,13 @@ EXPLANATION:
             anchor = step.get("anchor", "")
             context = step.get("context")
             highlighted_image = None
+            location = None
 
             if anchor and anchor.strip().upper() != "NONE":
-                box = self._locate(anchor, context)
+                box, source = self._locate_with_source(anchor, context)
+
+                if box:
+                    location = {"box": box, "source": source}
 
                 if box and isinstance(self.image_or_path, str):
                     image_path = Path(self.image_or_path)
@@ -397,6 +429,7 @@ EXPLANATION:
 
             highlighted_step = dict(step)
             highlighted_step["highlighted_image"] = highlighted_image
+            highlighted_step[STEP_LOCATION_KEY] = location
             highlighted_steps.append(highlighted_step)
 
         return highlighted_steps

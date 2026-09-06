@@ -14,9 +14,11 @@ Deliberately not built here: chat, settings, themes, lesson history.
 
 from __future__ import annotations
 
-from PyQt6.QtCore import QEvent, QPoint, Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import QEvent, QPoint, QRect, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QScreen
 from PyQt6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -82,6 +84,8 @@ QPushButton {
 }
 QPushButton:hover:enabled { background-color: rgba(255, 255, 255, 45); }
 QPushButton:disabled { color: rgba(255, 255, 255, 70); }
+QCheckBox { color: #d7d7db; font-size: 12px; }
+QCheckBox:disabled { color: rgba(255, 255, 255, 90); }
 """
 
 
@@ -102,6 +106,16 @@ def _fit(text: str, limit: int = MAX_EXPLANATION_CHARS) -> str:
     return cut.rstrip(" ,;:.") + "…"
 
 
+def _try_available_geometry(screen: QScreen | None) -> QRect | None:
+    """A screen's available geometry, or None if the screen is gone."""
+    if screen is None:
+        return None
+    try:
+        return screen.availableGeometry()
+    except RuntimeError:
+        return None
+
+
 class FloatingCompanion(QWidget):
     """A small always-on-top panel showing what the tutor is doing.
 
@@ -111,10 +125,23 @@ class FloatingCompanion(QWidget):
 
     next_requested = pyqtSignal()
     prev_requested = pyqtSignal()
-    dismiss_requested = pyqtSignal()
+    # Qt saw a physical Escape while this window had keyboard focus. Nothing
+    # is done about it here: the controller decides whether the global hook
+    # is already the authority for that press, and what the press means.
+    escape_pressed = pyqtSignal()
     # Carries the question to ask. Never empty: a blank field submits
     # DEFAULT_QUESTION.
     question_submitted = pyqtSignal(str)
+    # The learner wants to pick an area for the next question.
+    select_area_requested = pyqtSignal()
+    # The learner wants the next question to use the full screen again.
+    clear_area_requested = pyqtSignal()
+    # The learner flipped the Voice switch; carries the new setting.
+    voice_toggled = pyqtSignal(bool)
+    # Read the current step aloud again, from the beginning.
+    replay_requested = pyqtSignal()
+    # Stop reading; the step stays on screen.
+    stop_speech_requested = pyqtSignal()
 
     def __init__(self, screen=None) -> None:
         super().__init__()
@@ -123,6 +150,12 @@ class FloatingCompanion(QWidget):
         self._desired_pos: tuple[int, int] | None = None
         self._thinking_dots = 0
         self._question = ""
+        # Human-readable size of the prepared area, or None for full screen.
+        self._area_description: str | None = None
+        self._voice_available = False
+        self._voice_enabled = False
+        self._voice_speaking = False
+        self._state = TutorState.IDLE
 
         self.setObjectName("companion")
         self.setWindowFlags(
@@ -197,13 +230,39 @@ class FloatingCompanion(QWidget):
         self.nav_widget.setLayout(nav)
         layout.addWidget(self.nav_widget)
 
+        # Voice sits between the lesson and the question so the switch is at
+        # hand before asking; Replay and Stop appear only with a step on show.
+        voice = QHBoxLayout()
+        voice.setSpacing(8)
+        self.chk_voice = QCheckBox("Voice")
+        # clicked, not toggled: programmatic setChecked() from the controller
+        # must not report back as a learner's request and stop the reading.
+        self.chk_voice.clicked.connect(self.voice_toggled)
+        voice.addWidget(self.chk_voice)
+        self.lbl_voice_notice = QLabel()
+        self.lbl_voice_notice.setObjectName("counter")
+        voice.addWidget(self.lbl_voice_notice, stretch=1)
+        self.btn_replay = QPushButton("Replay")
+        self.btn_replay.setToolTip("Read this step again")
+        self.btn_replay.clicked.connect(self.replay_requested)
+        voice.addWidget(self.btn_replay)
+        self.btn_stop_speech = QPushButton("Stop")
+        self.btn_stop_speech.setToolTip("Stop reading; the step stays")
+        self.btn_stop_speech.clicked.connect(self.stop_speech_requested)
+        voice.addWidget(self.btn_stop_speech)
+
+        self.voice_widget = QWidget()
+        self.voice_widget.setLayout(voice)
+        layout.addWidget(self.voice_widget)
+
         ask = QHBoxLayout()
         ask.setSpacing(8)
         self.question_input = QLineEdit()
         self.question_input.setPlaceholderText("Ask about the screen, or press Enter")
         self.question_input.returnPressed.connect(self.submit_question)
-        # Escape inside the field should give the field up, not dismiss the
-        # lesson behind it; the companion's own Escape handling does that.
+        # QLineEdit ignores Escape, which would propagate it to this widget's
+        # keyPressEvent and report the same press twice. The filter consumes
+        # it so one press is reported once.
         self.question_input.installEventFilter(self)
         ask.addWidget(self.question_input, stretch=1)
 
@@ -211,16 +270,60 @@ class FloatingCompanion(QWidget):
         self.btn_ask.clicked.connect(self.submit_question)
         ask.addWidget(self.btn_ask)
 
+        self.btn_select_area = QPushButton("Select area")
+        self.btn_select_area.setToolTip("Pick the part of the screen to ask about (Ctrl+Shift+S)")
+        self.btn_select_area.clicked.connect(self.select_area_requested)
+        ask.addWidget(self.btn_select_area)
+
         self.ask_widget = QWidget()
         self.ask_widget.setLayout(ask)
         layout.addWidget(self.ask_widget)
 
+        # Shown only while an area is prepared, so the learner can see that
+        # Ask will crop and can go back to the full screen in one click.
+        area = QHBoxLayout()
+        area.setSpacing(8)
+        self.lbl_area = QLabel()
+        self.lbl_area.setObjectName("counter")
+        area.addWidget(self.lbl_area, stretch=1)
+        self.btn_clear_area = QPushButton("Use full screen")
+        self.btn_clear_area.clicked.connect(self.clear_area_requested)
+        area.addWidget(self.btn_clear_area)
+
+        self.area_widget = QWidget()
+        self.area_widget.setLayout(area)
+        self.area_widget.setVisible(False)
+        layout.addWidget(self.area_widget)
+
         self.setLayout(layout)
 
+    def _available_area(self) -> QRect | None:
+        """The screen area the panel may occupy, or None when no screen is left.
+
+        The retained QScreen is a Python wrapper over a C++ object that Qt
+        deletes when a monitor is unplugged; every accessor then raises
+        RuntimeError. That must not escape a Qt slot, and the recovery message
+        the controller shows next has to land somewhere visible, so a dead
+        target is dropped in favour of whichever screen still exists. This only
+        moves the companion: it does not retarget the overlay or say anything
+        about whether a selected crop is still valid.
+        """
+        area = _try_available_geometry(self._screen_target)
+        if area is not None:
+            return area
+
+        self._screen_target = None
+        for candidate in (self.screen(), QApplication.primaryScreen()):
+            area = _try_available_geometry(candidate)
+            if area is not None:
+                self._screen_target = candidate
+                return area
+        return None
+
     def _move_to_default_corner(self) -> None:
-        if self._screen_target is None:
+        area = self._available_area()
+        if area is None:
             return
-        area = self._screen_target.availableGeometry()
         self.adjustSize()
         self._desired_pos = (
             area.right() - self.width() - _MARGIN,
@@ -239,11 +342,14 @@ class FloatingCompanion(QWidget):
         """
         self.adjustSize()
 
-        if self._desired_pos is None or self._screen_target is None:
+        if self._desired_pos is None:
+            return
+
+        area = self._available_area()
+        if area is None:
             return
 
         x, y = self._desired_pos
-        area = self._screen_target.availableGeometry()
         # Clamp so a tall step cannot push the panel off-screen.
         x = max(area.left(), min(x, area.right() - self.width()))
         y = max(area.top(), min(y, area.bottom() - self.height()))
@@ -259,17 +365,29 @@ class FloatingCompanion(QWidget):
         """
         busy = state in _BUSY_STATES
         teaching = state in _LESSON_STATES
+        selecting = state is TutorState.SELECTING
+        self._state = state
 
         self.nav_widget.setVisible(teaching)
         # While the tutor is working a new question would be dropped by the
         # state guard anyway, so do not offer the field.
-        self.ask_widget.setVisible(not busy)
+        self.ask_widget.setVisible(not busy and not selecting)
+        self.area_widget.setVisible(
+            not busy and not selecting and self._area_description is not None
+        )
 
         if busy:
             self.lbl_status.setText("CAPTURING" if state == TutorState.CAPTURING else "THINKING")
             self.lbl_title.setText("Reading your screen…")
             self.lbl_body.setText("")
             self._start_thinking()
+        elif selecting:
+            # The question and any lesson text are left alone: selecting only
+            # prepares an area, and the panel comes back as it was.
+            self._stop_thinking()
+            self.lbl_status.setText("SELECTING")
+            self.lbl_title.setText("Drag over the area to ask about")
+            self.lbl_body.setText("Release to keep it. Esc cancels.")
         elif teaching:
             self._stop_thinking()
             self.lbl_status.setText("TEACHING")
@@ -282,7 +400,74 @@ class FloatingCompanion(QWidget):
             self._question = ""
             self.lbl_question.setVisible(False)
 
+        self._refresh_voice_row()
         self._apply_geometry()
+
+    def set_voice_controls(
+        self,
+        available: bool,
+        enabled: bool,
+        speaking: bool,
+        notice: str = "",
+        unavailable_reason: str = "",
+    ) -> None:
+        """Renders the voice row from the narration service's state.
+
+        Args:
+            available: A local voice exists on this machine.
+            enabled: The learner has the voice switched on.
+            speaking: A step is being read right now.
+            notice: A short note to show beside the switch, e.g. after a
+                failure; empty clears it.
+            unavailable_reason: Why there is no voice, shown as a tooltip.
+        """
+        self._voice_available = available
+        self._voice_enabled = enabled and available
+        self._voice_speaking = speaking and available
+        self.chk_voice.setEnabled(available)
+        self.chk_voice.setChecked(self._voice_enabled)
+        self.chk_voice.setText("Voice" if available else "Voice unavailable")
+        self.chk_voice.setToolTip(
+            "Read each step aloud" if available else unavailable_reason or "No local voice"
+        )
+        self.lbl_voice_notice.setText(notice)
+        self._refresh_voice_row()
+        self._apply_geometry()
+
+    def _refresh_voice_row(self) -> None:
+        busy = self._state in _BUSY_STATES or self._state is TutorState.SELECTING
+        self.voice_widget.setVisible(not busy)
+        # Only a step on show can be replayed; a message that replaced the
+        # step hides the navigation and with it these two.
+        playable = self._voice_available and self.nav_widget.isVisibleTo(self)
+        self.btn_replay.setVisible(playable)
+        self.btn_stop_speech.setVisible(playable)
+        self.btn_replay.setEnabled(self._voice_enabled)
+        self.btn_stop_speech.setEnabled(self._voice_speaking)
+        self.lbl_voice_notice.setVisible(bool(self.lbl_voice_notice.text()))
+
+    def set_selected_area(self, description: str | None) -> None:
+        """Shows that the next Ask will crop to an area, or hides the indicator.
+
+        Args:
+            description: A short size string such as ``"640 × 400"``, or None
+                when the next capture is the full screen.
+        """
+        self._area_description = description
+        self.lbl_area.setText(f"Area selected · {description}" if description else "")
+        self.area_widget.setVisible(description is not None and self.ask_widget.isVisibleTo(self))
+        self._apply_geometry()
+
+    def has_selected_area(self) -> bool:
+        return self._area_description is not None
+
+    def draft_text(self) -> str:
+        """What has been typed and not yet asked, verbatim."""
+        return self.question_input.text()
+
+    def restore_draft(self, text: str) -> None:
+        """Puts a draft back after the field was temporarily withdrawn."""
+        self.question_input.setText(text)
 
     def set_question(self, question: str) -> None:
         """Records what the learner asked, for the life of the lesson."""
@@ -308,6 +493,7 @@ class FloatingCompanion(QWidget):
         self.nav_widget.setVisible(True)
         self.btn_prev.setEnabled(index > 0)
         self.btn_next.setEnabled(index < total - 1)
+        self._refresh_voice_row()
         self._apply_geometry()
 
     # ------------------------------------------------------------- asking
@@ -322,6 +508,19 @@ class FloatingCompanion(QWidget):
 
     def question_has_focus(self) -> bool:
         return self.question_input.hasFocus()
+
+    def has_draft_text(self) -> bool:
+        """True when something has been typed and not yet asked."""
+        return bool(self.question_input.text().strip())
+
+    def abandon_draft(self) -> None:
+        """Drops the typed question and gives the field up.
+
+        Leaves the lesson behind it alone; Escape while drafting is about the
+        draft, not the lesson.
+        """
+        self.question_input.clear()
+        self.question_input.clearFocus()
 
     def submit_question(self) -> None:
         """Emits the typed question, or the default when nothing was typed."""
@@ -338,10 +537,16 @@ class FloatingCompanion(QWidget):
             and event.type() == QEvent.Type.KeyPress
             and event.key() == Qt.Key.Key_Escape
         ):
-            self.question_input.clear()
-            self.question_input.clearFocus()
+            self._report_escape(event)
             return True
         return super().eventFilter(watched, event)
+
+    def _report_escape(self, event) -> None:
+        # A held key auto-repeats. Reporting each repeat would let one press
+        # abandon the draft and then dismiss the lesson behind it.
+        if event.isAutoRepeat():
+            return
+        self.escape_pressed.emit()
 
     def show_message(self, status: str, title: str, body: str = "") -> None:
         """Shows a one-off message, e.g. an error the user should see."""
@@ -350,6 +555,7 @@ class FloatingCompanion(QWidget):
         self.lbl_title.setText(title)
         self.lbl_body.setText(body)
         self.nav_widget.setVisible(False)
+        self._refresh_voice_row()
         self._apply_geometry()
 
     # ------------------------------------------------------------- thinking
@@ -389,6 +595,6 @@ class FloatingCompanion(QWidget):
 
     def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key.Key_Escape:
-            self.dismiss_requested.emit()
+            self._report_escape(event)
         else:
             super().keyPressEvent(event)
