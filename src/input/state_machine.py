@@ -10,3 +10,7 @@ class TutorState(Enum):
     ANALYZING = auto()
     TEACHING = auto()
     FINISHED = auto()
+    # A follow-up about the displayed step is being answered. The lesson and
+    # its highlight stay on screen, but asking, capturing, selecting,
+    # navigating and the debug overlay wait; Escape cancels the follow-up.
+    ANSWERING = auto()

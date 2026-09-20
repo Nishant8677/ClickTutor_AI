@@ -122,7 +122,10 @@ class TestNavigationGuard:
 
 
 class TestDebugToggle:
-    @pytest.mark.parametrize("state", [s for s in TutorState if s is not TutorState.SELECTING])
+    @pytest.mark.parametrize(
+        "state",
+        [s for s in TutorState if s not in (TutorState.SELECTING, TutorState.ANSWERING)],
+    )
     def test_debug_toggle_is_always_available(self, manager, state):
         manager.set_state(state)
 
@@ -130,8 +133,9 @@ class TestDebugToggle:
 
         assert manager.dispatched == [InputAction.TOGGLE_DEBUG]
 
-    def test_debug_toggle_is_blocked_while_selecting(self, manager):
-        manager.set_state(TutorState.SELECTING)
+    @pytest.mark.parametrize("state", [TutorState.SELECTING, TutorState.ANSWERING])
+    def test_debug_toggle_is_blocked_while_selecting_or_answering(self, manager, state):
+        manager.set_state(state)
 
         manager.handle_action(InputAction.TOGGLE_DEBUG)
 

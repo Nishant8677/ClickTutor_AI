@@ -1,0 +1,68 @@
+{
+  "feature": "typed follow-ups on the displayed lesson step",
+  "date": "2026-09-20",
+  "base_commit": "71cfffb951635a3beecc5b09ed2d8c7ee3672e6a",
+  "branch": "codex/study-sessions",
+  "checks": [
+    {
+      "command": "QT_QPA_PLATFORM=offscreen venv/bin/python -m pytest -o addopts='' -q",
+      "result": "593 passed in 2.91s",
+      "exit_code": 0
+    },
+    {
+      "command": "QT_QPA_PLATFORM=offscreen venv/bin/python -m pytest -o addopts='' -q tests/unit/test_follow_up.py tests/unit/test_companion.py tests/unit/test_area_selection.py tests/unit/test_input_manager.py",
+      "result": "156 passed in 2.56s after the final native-width adjustment",
+      "exit_code": 0
+    },
+    {
+      "command": "venv/bin/ruff check .",
+      "result": "All checks passed",
+      "exit_code": 0
+    },
+    {
+      "command": "venv/bin/ruff format --check src/desktop/followup.py src/desktop/controller.py src/desktop/companion.py src/input/state_machine.py src/input/input_manager.py tests/unit/test_follow_up.py tests/unit/test_input_manager.py",
+      "result": "7 files already formatted",
+      "exit_code": 0
+    },
+    {
+      "command": "venv/bin/mypy src/attention/coordinates.py src/lesson_validator.py src/box_metrics.py src/ocr_occurrences.py",
+      "result": "Success: no issues found in 4 source files",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "result": "clean",
+      "exit_code": 0
+    },
+    {
+      "command": "native Windows PyQt6 offscreen typed-follow-up smoke",
+      "result": "passed: 202px input width in 380px companion; stored context and highlight preserved; accepted answer recorded and narrated; navigation and cancellation rejected stale output",
+      "exit_code": 0
+    }
+  ],
+  "native_check_constraints": {
+    "network_or_live_model_requests": false,
+    "screen_capture_used": false,
+    "ocr_executable_used": false,
+    "speech_backend": "injected silent fake",
+    "physical_focus_or_hotkeys_tested": false,
+    "audible_output_tested": false
+  },
+  "verified_behavior": [
+    "lesson-state text submission routes to a direct follow-up without capture or OCR",
+    "Ask screen retains the explicit capture-and-new-lesson route",
+    "one stored screenshot and one bounded prompt feed exactly one model-call seam",
+    "accepted answers preserve the current lesson step and highlight, enter session history once and use existing narration",
+    "Replay reads the follow-up answer and navigation returns to stored lesson steps",
+    "Escape and errors restore the base step without a modal or history entry",
+    "lesson and follow-up work share one worker slot with latest-owned pending intent",
+    "old session, lesson, step and worker callbacks are rejected",
+    "the Windows companion retains a usable follow-up field at its fixed width"
+  ],
+  "limits": [
+    "No live model request was made, so answer quality and real latency are unverified.",
+    "Follow-up context is in memory only and uses at most five complete recent exchanges; no summary is generated.",
+    "RAG, external documents, cross-launch persistence, voice input and streaming are not implemented.",
+    "The native check used Qt offscreen mode and fake speech, so it does not establish physical focus, hotkeys, audible quality or broad display-scaling behavior."
+  ]
+}

@@ -99,8 +99,10 @@ class InputManager(QObject):
         elif action == InputAction.TOGGLE_DEBUG:
             # The selector covers the overlay; redrawing it underneath would
             # change what the learner sees when the selector goes away.
-            if self.current_state is TutorState.SELECTING:
-                logger.debug("Ignored TOGGLE_DEBUG: an area is being selected")
+            # A follow-up being answered owns the displayed step; redrawing
+            # under it would change what its answer is about.
+            if self.current_state in (TutorState.SELECTING, TutorState.ANSWERING):
+                logger.debug("Ignored TOGGLE_DEBUG: %s", self.current_state.name)
             else:
                 self._dispatch(action)
 

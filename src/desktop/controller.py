@@ -28,6 +28,7 @@ from src.attention.shapes import (
     UnderlineShape,
 )
 from src.desktop.companion import DEFAULT_QUESTION, FloatingCompanion
+from src.desktop.followup import FollowUpRequest, FollowUpWorker, build_follow_up_request
 from src.desktop.narration import NarrationService, NarrationToken
 from src.desktop.selection import (
     RegionSelector,
@@ -391,6 +392,7 @@ class DesktopController:
         )
         self.companion.escape_pressed.connect(self.on_local_escape)
         self.companion.question_submitted.connect(self.ask)
+        self.companion.follow_up_submitted.connect(self.ask_follow_up)
         self.companion.select_area_requested.connect(
             lambda: self.input_manager.handle_action(InputAction.SELECT_REGION)
         )
@@ -422,6 +424,12 @@ class DesktopController:
         # Anything else is a leftover from an earlier reading and is ignored,
         # so a late failure from a replay cannot mark a later step failed.
         self._expected_speech: NarrationToken | None = None
+        # The accepted follow-up shown over the current step, as (question,
+        # answer), or None. Transient: a step change or a new lesson drops it.
+        self._follow_up: tuple[str, str] | None = None
+        # The question the displayed lesson was asked with, quoted back to
+        # the model by a follow-up.
+        self._lesson_question = ""
 
         self.capture_engine = ScreenCapture()
         self.demo_manager = DemoManager(self.capture_engine)
@@ -446,10 +454,11 @@ class DesktopController:
         # and it is not waited on either, since that would freeze the GUI for
         # the length of a model call. It is asked to stop and left to finish.
         self.worker = None
-        # A request captured while the cancelled worker is still finishing.
-        # Only the latest is kept, so repeated cancel/ask cannot pile up model
-        # requests; it starts when the running worker's finished signal lands.
-        self._pending_lesson: LessonRequest | None = None
+        # A request made while the previous worker is still finishing: a
+        # lesson or a follow-up, whichever came last. Only the latest is
+        # kept, so repeated cancel/ask cannot pile up model requests; it
+        # starts when the running worker's finished signal lands.
+        self._pending_lesson: LessonRequest | FollowUpRequest | None = None
         # Monotonic id of the request that owns the UI, or None when nothing
         # does. Every result is checked against it before touching anything.
         self._request_serial = 0
@@ -515,12 +524,19 @@ class DesktopController:
         )
 
     def _speak_current_step(self) -> None:
-        """Reads the displayed step's full stored explanation, if the voice is on."""
+        """Reads what the companion shows for this step, if the voice is on.
+
+        That is the accepted follow-up answer while one is displayed over the
+        step, and the step's full stored explanation otherwise.
+        """
         self._expected_speech = None
         if self._lesson_on_show() and self.narration.enabled and not self.demo_manager.is_running:
-            step = self.lesson_steps[self.current_step_index]
+            if self._follow_up is not None:
+                text = self._follow_up[1]
+            else:
+                text = str(self.lesson_steps[self.current_step_index].get("explanation") or "")
             self._expected_speech = self.narration.speak(
-                str(step.get("explanation") or ""),
+                text,
                 lesson_id=self._displayed_lesson,
                 step_index=self.current_step_index,
             )
@@ -594,6 +610,102 @@ class DesktopController:
         # guard dropped the action instead, nothing should linger for later.
         self._pending_question = ""
 
+    # -- follow-ups --------------------------------------------------------
+
+    def ask_follow_up(self, question: str) -> None:
+        """Answers a question about the displayed step from the stored capture.
+
+        No screen grab, no OCR, no lesson regeneration: the request is a
+        frozen snapshot of what is on show, answered by one model call. The
+        step and its highlight stay where they are throughout.
+        """
+        question = (question or "").strip()
+        if not question:
+            return
+        if not self._lesson_on_show() or self.demo_manager.is_running:
+            logger.info("Ignoring a follow-up with no lesson step on show.")
+            return
+        self._silence_narration()
+        self._follow_up = None
+        self.companion.set_notice("")
+        serial = self._begin_request()
+        try:
+            request = build_follow_up_request(
+                serial=serial,
+                session_id=self.session.session_id,
+                lesson_id=self._displayed_lesson,
+                step_index=self.current_step_index,
+                question=question,
+                image=self.current_image,
+                ocr_data=self.ocr_data,
+                capture_note=CROPPED_CAPTURE_NOTE if self._displayed_geometry is not None else "",
+                step=self.lesson_steps[self.current_step_index],
+                lesson_question=self._lesson_question,
+                history=self.session.snapshot(),
+            )
+        except Exception:
+            # This runs inside a Qt slot, where an escaping exception aborts
+            # the process. The step on show is untouched; say so inline.
+            logger.exception("Could not build follow-up request %s", serial)
+            self._abandon_request()
+            self._restore_base_step("Couldn't ask that. The step is unchanged; try again.")
+            return
+        self.input_manager.set_state(TutorState.ANSWERING)
+        self.generate_lesson(request)
+
+    def _owns_follow_up(self, request: FollowUpRequest) -> bool:
+        """Whether a follow-up result still describes what is on screen."""
+        return (
+            self._owns_ui(request)
+            and self.input_manager.current_state is TutorState.ANSWERING
+            and request.lesson_id == self._displayed_lesson
+            and request.step_index == self.current_step_index
+            and request.image is self.current_image
+            and 0 <= request.step_index < len(self.lesson_steps)
+        )
+
+    def _on_follow_up_ready(self, worker, answer: str) -> None:
+        request = worker.request
+        if not self._owns_follow_up(request):
+            logger.info("Dropping follow-up answer for retired request %s.", request.serial)
+            return
+        answer = (answer or "").strip()
+        self.ui.btn_capture.setEnabled(True)
+        if not answer:
+            self._restore_base_step("The model returned no answer. Try asking again.")
+            return
+        self._follow_up = (request.question, answer)
+        # The step comes back from its stored box; nothing is looked up.
+        self.show_current_step()
+        self.session.record(request.question, answer)
+        self.ui.lbl_status.setText("Follow-up answered.")
+        self._refresh_voice_controls("")
+        self._speak_current_step()
+
+    def _on_follow_up_error(self, worker, message: str) -> None:
+        request = worker.request
+        if not self._owns_follow_up(request):
+            logger.info("Dropping follow-up error for request %s: %s", request.serial, message)
+            return
+        self._abandon_request()
+        self.ui.btn_capture.setEnabled(True)
+        self._restore_base_step("Couldn't answer that. The step is unchanged; try again.")
+
+    def _cancel_follow_up(self) -> None:
+        """Retires the follow-up and puts the step back, without waiting on it."""
+        self._abandon_request()
+        self.ui.btn_capture.setEnabled(True)
+        self._restore_base_step("")
+        self.ui.lbl_status.setText("Follow-up cancelled.")
+
+    def _restore_base_step(self, notice: str) -> None:
+        """Shows the step under a finished or failed follow-up again, unread."""
+        self._silence_narration()
+        self._follow_up = None
+        self.show_current_step()
+        self.companion.set_notice(notice)
+        self._refresh_voice_controls()
+
     def on_local_escape(self):
         """A Qt widget saw Escape.
 
@@ -655,6 +767,10 @@ class DesktopController:
     def _cancel_lesson(self):
         if self._selection is not None:
             self._cancel_selection()
+            return
+        if self.input_manager.current_state is TutorState.ANSWERING:
+            # The follow-up is what is running; the lesson under it stays.
+            self._cancel_follow_up()
             return
         if self.demo_manager.is_running:
             self.demo_manager.stop_demo()
@@ -718,6 +834,7 @@ class DesktopController:
         self.ocr_data = None
         self._selected_region = None
         self.companion.set_selected_area(None)
+        self.companion.set_notice("")
         self.companion.abandon_draft()
         self.companion.set_question("")
         self._pending_question = ""
@@ -900,6 +1017,8 @@ class DesktopController:
         """Drops the current lesson and everything drawn for it."""
         self._silence_narration()
         self.lesson_steps = []
+        self._follow_up = None
+        self._lesson_question = ""
         self.current_step_index = 0
         self.is_debug_mode = False
         self._displayed_geometry = None
@@ -1087,8 +1206,7 @@ class DesktopController:
             self.ui.show()
         self.input_manager.set_state(session.prior_state)
         if self.lesson_steps and session.prior_state in (TutorState.TEACHING, TutorState.FINISHED):
-            step = self.lesson_steps[self.current_step_index]
-            self.companion.show_step(step, self.current_step_index, len(self.lesson_steps))
+            self._show_step_in_companion()
         self.companion.restore_draft(session.draft)
         self.companion.set_selected_area(
             self._selected_region.describe() if self._selected_region else None
@@ -1119,8 +1237,12 @@ class DesktopController:
         msg.setWindowTitle("ClickTutor")
         msg.exec()
 
-    def generate_lesson(self, request: LessonRequest):
-        """Starts lesson generation for a request, or queues it behind a stopping worker."""
+    def generate_lesson(self, request: LessonRequest | FollowUpRequest):
+        """Starts a lesson or follow-up request, or queues it behind a stopping worker.
+
+        One worker slot serves both kinds, so provider calls never overlap;
+        the latest request wins the slot when the running worker finishes.
+        """
         self.ui.btn_capture.setEnabled(False)
         if self.worker is not None:
             # The previous worker was cancelled but has not finished; only one
@@ -1131,7 +1253,10 @@ class DesktopController:
             return
         self._start_worker(request)
 
-    def _start_worker(self, request: LessonRequest):
+    def _start_worker(self, request: LessonRequest | FollowUpRequest):
+        if isinstance(request, FollowUpRequest):
+            self._start_follow_up_worker(request)
+            return
         self.ui.lbl_status.setText("Reading the screen and asking Gemini...")
         worker = LessonWorker(request)
         # Queued explicitly. The signals are emitted on the worker thread and
@@ -1146,6 +1271,18 @@ class DesktopController:
             queued,
         )
         worker.error.connect(lambda message: self._on_worker_error(worker, message), queued)
+        worker.finished.connect(lambda: self._on_worker_finished(worker), queued)
+        self.worker = worker
+        worker.start()
+
+    def _start_follow_up_worker(self, request: FollowUpRequest):
+        self.ui.lbl_status.setText("Asking Gemini about this step...")
+        worker = FollowUpWorker(request)
+        # Queued for the same reason as the lesson worker's signals: emitted
+        # on the worker thread, handled on the GUI thread, in emission order.
+        queued = Qt.ConnectionType.QueuedConnection
+        worker.answer_ready.connect(lambda answer: self._on_follow_up_ready(worker, answer), queued)
+        worker.error.connect(lambda message: self._on_follow_up_error(worker, message), queued)
         worker.finished.connect(lambda: self._on_worker_finished(worker), queued)
         self.worker = worker
         worker.start()
@@ -1178,6 +1315,7 @@ class DesktopController:
         if self.input_manager.current_state in (
             TutorState.CAPTURING,
             TutorState.ANALYZING,
+            TutorState.ANSWERING,
             TutorState.SELECTING,
         ):
             return
@@ -1212,6 +1350,7 @@ class DesktopController:
         # Only a lesson that was actually presented becomes context for the
         # next question; an empty-step answer returned to IDLE above.
         if steps:
+            self._lesson_question = request.question
             self.session.record(request.question, str(answer or ""))
 
     def _on_worker_error(self, worker, error_msg):
@@ -1305,8 +1444,15 @@ class DesktopController:
         self.input_manager.set_state(TutorState.TEACHING)
 
         step = self.lesson_steps[self.current_step_index]
-        self.companion.show_step(step, self.current_step_index, len(self.lesson_steps))
+        self._show_step_in_companion()
         self._render_box(self._step_box(step, self.ocr_data), step)
+
+    def _show_step_in_companion(self) -> None:
+        """Shows the current step, with the accepted follow-up over it if any."""
+        step = self.lesson_steps[self.current_step_index]
+        self.companion.show_step(step, self.current_step_index, len(self.lesson_steps))
+        if self._follow_up is not None:
+            self.companion.show_follow_up(*self._follow_up)
 
     def _step_box(self, step, ocr_data):
         """The box to draw for a step, in captured-image pixels, or None.
@@ -1448,6 +1594,10 @@ class DesktopController:
         interrupts what is being read.
         """
         self._silence_narration()
+        # A follow-up was about the step being left; the destination step is
+        # shown and read on its own.
+        self._follow_up = None
+        self.companion.set_notice("")
         self.current_step_index = index
         self.show_current_step()
         self._speak_current_step()

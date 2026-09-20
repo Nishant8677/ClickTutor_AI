@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -30,7 +31,12 @@ from PyQt6.QtWidgets import (
 from src.input.state_machine import TutorState
 
 # States that mean "the tutor is working"; the companion animates through them.
-_BUSY_STATES = frozenset({TutorState.CAPTURING, TutorState.ANALYZING})
+_BUSY_STATES = frozenset({TutorState.CAPTURING, TutorState.ANALYZING, TutorState.ANSWERING})
+_BUSY_STATUS = {
+    TutorState.CAPTURING: ("CAPTURING", "Reading your screen…"),
+    TutorState.ANALYZING: ("THINKING", "Reading your screen…"),
+    TutorState.ANSWERING: ("ANSWERING", "Thinking about this step…"),
+}
 
 # States in which a lesson is on screen and navigation makes sense.
 _LESSON_STATES = frozenset({TutorState.TEACHING, TutorState.FINISHED})
@@ -53,6 +59,17 @@ DEFAULT_QUESTION = "Explain what I am looking at."
 # Truncating explicitly is honest about it, and a companion is not the place
 # for an essay -- the overlay is doing the pointing.
 MAX_EXPLANATION_CHARS = 420
+# A follow-up answer is asked for as 2-5 sentences, so it gets more room than
+# a step body before the same honest truncation applies.
+MAX_ANSWER_CHARS = 700
+
+# The field's labels in the two modes it has: a new capture, or a question
+# about the step on show.
+ASK_PLACEHOLDER = "Ask about the screen, or press Enter"
+FOLLOW_UP_PLACEHOLDER = "Ask about this step"
+ASK_LABEL = "Ask"
+FOLLOW_UP_LABEL = "Follow up"
+ASK_SCREEN_LABEL = "Ask screen"
 
 _STYLE = """
 #companion {
@@ -81,6 +98,10 @@ QPushButton {
     border-radius: 7px;
     padding: 6px 14px;
     font-size: 12px;
+}
+#primaryAction {
+    padding-left: 4px;
+    padding-right: 4px;
 }
 QPushButton:hover:enabled { background-color: rgba(255, 255, 255, 45); }
 QPushButton:disabled { color: rgba(255, 255, 255, 70); }
@@ -129,9 +150,12 @@ class FloatingCompanion(QWidget):
     # is done about it here: the controller decides whether the global hook
     # is already the authority for that press, and what the press means.
     escape_pressed = pyqtSignal()
-    # Carries the question to ask. Never empty: a blank field submits
-    # DEFAULT_QUESTION.
+    # Carries the question to ask of a new capture. Never empty: a blank
+    # field submits DEFAULT_QUESTION.
     question_submitted = pyqtSignal(str)
+    # Carries a question about the step on show. Never blank: an empty field
+    # in a lesson state submits nothing at all.
+    follow_up_submitted = pyqtSignal(str)
     # The learner wants to pick an area for the next question.
     select_area_requested = pyqtSignal()
     # The learner wants the next question to use the full screen again.
@@ -272,7 +296,7 @@ class FloatingCompanion(QWidget):
         ask = QHBoxLayout()
         ask.setSpacing(8)
         self.question_input = QLineEdit()
-        self.question_input.setPlaceholderText("Ask about the screen, or press Enter")
+        self.question_input.setPlaceholderText(ASK_PLACEHOLDER)
         self.question_input.returnPressed.connect(self.submit_question)
         # QLineEdit ignores Escape, which would propagate it to this widget's
         # keyPressEvent and report the same press twice. The filter consumes
@@ -280,18 +304,51 @@ class FloatingCompanion(QWidget):
         self.question_input.installEventFilter(self)
         ask.addWidget(self.question_input, stretch=1)
 
-        self.btn_ask = QPushButton("Ask")
+        self.btn_ask = QPushButton(ASK_LABEL)
+        self.btn_ask.setObjectName("primaryAction")
+        # Horizontally fixed: the Windows style otherwise lets the button
+        # absorb spare width and squeezes the field the learner types in.
+        # The button still resizes to its label when it is relabelled.
+        self.btn_ask.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btn_ask.clicked.connect(self.submit_question)
         ask.addWidget(self.btn_ask)
+
+        # The explicit recapture while a lesson is on show. The field means
+        # "about this step" then, so a screen that changed needs its own
+        # control rather than a hotkey the learner may not remember.
+        self.ask_widget = QWidget()
+        self.ask_widget.setLayout(ask)
+        layout.addWidget(self.ask_widget)
+
+        # The screen actions sit on their own row: with Follow up beside the
+        # field, a third and fourth button in the same 380px row left the
+        # field too narrow to type in.
+        screen = QHBoxLayout()
+        screen.setSpacing(8)
+        screen.addStretch(1)
+        self.btn_ask_screen = QPushButton(ASK_SCREEN_LABEL)
+        self.btn_ask_screen.setToolTip("Capture the screen again and start a new lesson")
+        self.btn_ask_screen.clicked.connect(self.submit_ask_screen)
+        self.btn_ask_screen.setVisible(False)
+        screen.addWidget(self.btn_ask_screen)
 
         self.btn_select_area = QPushButton("Select area")
         self.btn_select_area.setToolTip("Pick the part of the screen to ask about (Ctrl+Shift+S)")
         self.btn_select_area.clicked.connect(self.select_area_requested)
-        ask.addWidget(self.btn_select_area)
+        screen.addWidget(self.btn_select_area)
 
-        self.ask_widget = QWidget()
-        self.ask_widget.setLayout(ask)
-        layout.addWidget(self.ask_widget)
+        self.screen_widget = QWidget()
+        self.screen_widget.setLayout(screen)
+        layout.addWidget(self.screen_widget)
+
+        # A short inline notice under the field, e.g. a follow-up that failed.
+        # The lesson stays; there is no dialog to dismiss.
+        self.lbl_notice = QLabel()
+        self.lbl_notice.setObjectName("counter")
+        self.lbl_notice.setWordWrap(True)
+        self.lbl_notice.setFixedWidth(_CONTENT_WIDTH)
+        self.lbl_notice.setVisible(False)
+        layout.addWidget(self.lbl_notice)
 
         # Shown only while an area is prepared, so the learner can see that
         # Ask will crop and can go back to the full screen in one click.
@@ -386,13 +443,18 @@ class FloatingCompanion(QWidget):
         # While the tutor is working a new question would be dropped by the
         # state guard anyway, so do not offer the field.
         self.ask_widget.setVisible(not busy and not selecting)
+        self.screen_widget.setVisible(not busy and not selecting)
         self.area_widget.setVisible(
             not busy and not selecting and self._area_description is not None
         )
+        self._refresh_ask_row(teaching)
+        if busy or state is TutorState.IDLE:
+            self.set_notice("")
 
         if busy:
-            self.lbl_status.setText("CAPTURING" if state == TutorState.CAPTURING else "THINKING")
-            self.lbl_title.setText("Reading your screen…")
+            status, title = _BUSY_STATUS[state]
+            self.lbl_status.setText(status)
+            self.lbl_title.setText(title)
             self.lbl_body.setText("")
             self._start_thinking()
         elif selecting:
@@ -415,6 +477,41 @@ class FloatingCompanion(QWidget):
             self.lbl_question.setVisible(False)
 
         self._refresh_voice_row()
+        self._apply_geometry()
+
+    def _refresh_ask_row(self, teaching: bool) -> None:
+        """Relabels the field for its mode: a new capture, or the step on show."""
+        self.question_input.setPlaceholderText(
+            FOLLOW_UP_PLACEHOLDER if teaching else ASK_PLACEHOLDER
+        )
+        self.btn_ask.setText(FOLLOW_UP_LABEL if teaching else ASK_LABEL)
+        # A fixed policy holds whatever size the button had when laid out;
+        # after a relabel that must be the new label's natural size.
+        self.btn_ask.adjustSize()
+        self.btn_ask.updateGeometry()
+        self.btn_ask_screen.setVisible(teaching)
+
+    def follow_up_mode(self) -> bool:
+        """True when the field asks about the displayed step, not the screen."""
+        return self._state in _LESSON_STATES
+
+    def set_notice(self, text: str) -> None:
+        """Shows a short inline note under the field, or hides it when blank."""
+        text = (text or "").strip()
+        self.lbl_notice.setText(text)
+        self.lbl_notice.setVisible(bool(text))
+        self._apply_geometry()
+
+    def show_follow_up(self, question: str, answer: str) -> None:
+        """Shows a follow-up and its answer in place of the step's own text.
+
+        The step counter, navigation and highlight are untouched: the answer
+        is about the step that stays on show.
+        """
+        self._stop_thinking()
+        self.lbl_status.setText("TEACHING")
+        self.lbl_title.setText(f"“{_fit(question, 120)}”")
+        self.lbl_body.setText(_fit(answer, MAX_ANSWER_CHARS))
         self._apply_geometry()
 
     def set_voice_controls(
@@ -537,13 +634,34 @@ class FloatingCompanion(QWidget):
         self.question_input.clearFocus()
 
     def submit_question(self) -> None:
-        """Emits the typed question, or the default when nothing was typed."""
+        """Submits the field for its current mode.
+
+        With no lesson on show: the typed question, or the default when
+        nothing was typed, for a new capture. With a step on show: a
+        follow-up about that step; a blank field submits nothing.
+        """
+        if not self.ask_widget.isVisibleTo(self):
+            return
+        if self.follow_up_mode():
+            question = self.question_input.text().strip()
+            if not question:
+                return
+            self._take_field()
+            self.follow_up_submitted.emit(question)
+            return
+        self.submit_ask_screen()
+
+    def submit_ask_screen(self) -> None:
+        """Asks of a fresh capture: the typed question, or the default."""
         if not self.ask_widget.isVisibleTo(self):
             return
         question = self.question_input.text().strip() or DEFAULT_QUESTION
+        self._take_field()
+        self.question_submitted.emit(question)
+
+    def _take_field(self) -> None:
         self.question_input.clear()
         self.question_input.clearFocus()
-        self.question_submitted.emit(question)
 
     def eventFilter(self, watched, event) -> bool:
         if (
