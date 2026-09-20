@@ -82,7 +82,9 @@ Decision gate: identify recurring situations where the tool helped, the most com
 
 If repeated use shows the missing interaction is asking Why?, make typed follow-ups the next increment.
 
-- Start a fresh in-memory study session on each app launch. Keep questions and answers from that session available until the learner explicitly ends it or exits the app. A New session action should stop speech, cancel/disown pending work, clear conversation and capture/lesson state, and start fresh. No automatic cross-launch conversation persistence in the initial version.
+Foundation status: bounded in-memory sessions and the explicit New session reset are implemented on `codex/study-sessions`. Accepted lesson questions and answers are snapshotted into later requests; ended-session callbacks are rejected. See [the study-session foundation](study-session-foundation.md) and its [check record](checks/study-session-foundation.json). Typed follow-up questions are still a separate next ticket, and no RAG or cross-launch persistence has been added.
+
+- Implemented: start a fresh in-memory study session on each app launch. Keep accepted questions and answers from that session available until the learner explicitly ends it or exits the app. New session stops speech, cancels/disowns pending work, clears conversation and capture/lesson state, and starts fresh. There is no automatic cross-launch conversation persistence.
 - Carry useful conversation context across questions and lessons within the active session. Preserve the current question/step and recent relevant exchanges under an explicit input-token budget; use a compact older-context summary when needed. Retaining session history does not mean sending the entire transcript on every turn, and a summary must not be described as perfect recall.
 - Bind each conversation turn's visual references to its capture identity. Recapture can retain conceptual discussion while invalidating old screen locations; starting a new session rejects late model and speech callbacks from the previous session.
 - Retain the current question, step and a bounded amount of lesson context.

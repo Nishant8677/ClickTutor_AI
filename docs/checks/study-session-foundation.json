@@ -1,0 +1,53 @@
+{
+  "feature": "bounded in-memory study-session foundation",
+  "date": "2026-09-20",
+  "base_commit": "0d2a306a8a540472f0efec855ba4a5439295e6b9",
+  "branch": "codex/study-sessions",
+  "checks": [
+    {
+      "command": "QT_QPA_PLATFORM=offscreen venv/bin/python -m pytest -o addopts='--strict-markers' -q",
+      "result": "566 passed in 2.99s",
+      "exit_code": 0
+    },
+    {
+      "command": "venv/bin/ruff check .",
+      "result": "All checks passed",
+      "exit_code": 0
+    },
+    {
+      "command": "venv/bin/mypy src/attention/coordinates.py src/lesson_validator.py src/box_metrics.py src/ocr_occurrences.py",
+      "result": "Success: no issues found in 4 source files",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "result": "clean",
+      "exit_code": 0
+    },
+    {
+      "command": "native Windows PyQt6 offscreen session reset smoke",
+      "result": "passed: control visible while busy; reset cleared in-memory and visual state; Voice preference survived; button fit within the companion",
+      "exit_code": 0
+    }
+  ],
+  "native_check_constraints": {
+    "network_or_model_requests": false,
+    "screen_capture_used": false,
+    "physical_focus_or_hotkeys_tested": false,
+    "real_model_context_quality_tested": false
+  },
+  "verified_behavior": [
+    "fresh in-memory session per controller launch",
+    "accepted questions and answers become immutable bounded request context",
+    "cancelled, failed, empty and stale results are not remembered",
+    "New session invalidates old request and speech ownership before clearing state",
+    "old worker callbacks cannot restore the ended session",
+    "Voice preference survives reset"
+  ],
+  "limits": [
+    "Typed follow-up questions are not implemented in this ticket.",
+    "The session retains at most 8 exchanges and 12000 content characters, but the existing lesson engine formats only the latest 10 role messages, equivalent to at most 5 complete exchanges.",
+    "History is intentionally not persisted across app launches.",
+    "The native check used Qt offscreen mode and does not establish physical focus, hotkey, or live model behavior."
+  ]
+}

@@ -36,6 +36,7 @@ from src.desktop.selection import (
     SelectionStaleError,
     screen_signature,
 )
+from src.desktop.session import Exchange, StudySession
 from src.input import InputAction, InputManager, TutorState
 from src.locator import STEP_LOCATION_KEY, OcrLocator
 from src.ocr_locator import build_words, extract_ocr_data
@@ -109,10 +110,11 @@ _SELECTION_READY_STATES = frozenset({TutorState.IDLE, TutorState.TEACHING, Tutor
 class LessonRequest:
     """One question about one captured screen.
 
-    The serial is assigned before the capture begins and is the only thing
-    that decides whether a result may touch the UI: cancelling, asking again
-    or starting a demo retires the serial, and anything a worker later
-    reports for a retired serial is dropped unseen. The image travels with
+    The serial is assigned before the capture begins and, together with the
+    session id below, decides whether a result may touch the UI: cancelling,
+    asking again or starting a demo retires the serial, New session retires
+    the session, and anything a worker later reports for either is dropped
+    unseen. The image travels with
     the request so an accepted lesson is always drawn on the screen it was
     generated from, never on a newer capture; the geometry travels with it
     for the same reason, so a crop is always placed where it was grabbed.
@@ -129,6 +131,17 @@ class LessonRequest:
     # longer exists; the result is checked against this before it is drawn.
     # None for a whole-screen capture.
     signature: ScreenSignature | None = None
+    # The study session this question was asked in. A result reported after
+    # the learner started a new session is dropped even if nothing else has
+    # retired its serial yet.
+    session_id: int = 0
+    # The accepted exchanges before this question, frozen at the moment the
+    # request was made. Later answers and a session reset cannot reach it.
+    history: tuple[Exchange, ...] = ()
+
+    def history_messages(self) -> list[dict[str, str]]:
+        """The snapshot in the role/content list LessonEngine reads. Fresh dicts each call."""
+        return [message for exchange in self.history for message in exchange.messages()]
 
 
 @dataclass(frozen=True)
@@ -201,7 +214,9 @@ class LessonWorker(QThread):
             # The engine's context slot is the existing seam for telling the
             # model what it is looking at; a crop needs it, a full screen not.
             context = CROPPED_CAPTURE_NOTE if self.request.geometry is not None else ""
-            answer, _, steps = engine.generate_lesson(self.question, [], context)
+            answer, _, steps = engine.generate_lesson(
+                self.question, self.request.history_messages(), context
+            )
             self.lesson_ready.emit(ocr_data, steps, answer)
         except Exception as e:
             logger.exception("Lesson generation failed")
@@ -382,6 +397,7 @@ class DesktopController:
         self.companion.clear_area_requested.connect(
             lambda: self.input_manager.handle_action(InputAction.CLEAR_REGION)
         )
+        self.companion.new_session_requested.connect(self.start_new_session)
 
         # Spoken narration runs beside the displayed lesson and never drives
         # it: finishing a step waits for Next. Injectable so tests use a fake
@@ -438,6 +454,12 @@ class DesktopController:
         # does. Every result is checked against it before touching anything.
         self._request_serial = 0
         self._active_request: int | None = None
+        # The study session: accepted questions and answers since launch or
+        # the last New session, held only in memory. Its id is the second
+        # half of request ownership: a result must match the serial *and*
+        # the session it was asked in before it may touch anything.
+        self._session_serial = 1
+        self.session = StudySession(self._session_serial)
         # Serial of the request whose error dialog is open, or None. The dialog
         # runs while the state is already IDLE, so without this an Escape
         # pressed over it would fall through as "nothing to cancel" and the
@@ -663,6 +685,52 @@ class DesktopController:
     def _is_current(self, serial: int) -> bool:
         return self._active_request == serial
 
+    def _owns_ui(self, request: LessonRequest) -> bool:
+        """Whether a request's result may act: right session and still the owner."""
+        return request.session_id == self.session.session_id and self._is_current(request.serial)
+
+    # -- study session -----------------------------------------------------
+
+    def start_new_session(self) -> None:
+        """Forgets everything and starts over, keeping only the voice setting.
+
+        Ownership goes first: the new session id and the cleared owner mean
+        that anything an old worker or dialog reports from here on is
+        recognised as belonging to a session that no longer exists, before
+        any of the cleanup below can pump events. The worker itself is only
+        asked to stop, never waited on; a question asked in the new session
+        queues behind it exactly as after a cancel.
+        """
+        self._session_serial += 1
+        self.session = StudySession(self._session_serial)
+        self._abandon_request()
+        self._modal_request = None
+        self._question_armed_at = None
+
+        self._silence_narration()
+        if self._selection is not None:
+            self._end_selection()
+        self._interrupt_demo()
+
+        self._clear_lesson()
+        self.current_image = None
+        self.image_path = None
+        self.ocr_data = None
+        self._selected_region = None
+        self.companion.set_selected_area(None)
+        self.companion.abandon_draft()
+        self.companion.set_question("")
+        self._pending_question = ""
+        # set_state is silent when already IDLE, and the companion must
+        # still drop a message or lesson text it was showing.
+        self.input_manager.set_state(TutorState.IDLE)
+        self.companion.apply_state(TutorState.IDLE)
+        # The notice goes; narration.enabled is untouched, so the switch stays.
+        self._refresh_voice_controls("")
+        if self.worker is None:
+            self.ui.btn_capture.setEnabled(True)
+        self.ui.lbl_status.setText("New session. Ready.")
+
     def _on_input_action(self, action: InputAction):
         if action == InputAction.CAPTURE_SCREEN:
             # The hotkey puts the cursor in the question field. Pressed again
@@ -733,7 +801,17 @@ class DesktopController:
             self.companion.set_question(question)
             self.input_manager.set_state(TutorState.ANALYZING)
             signature = selected.signature if selected is not None else None
-            self.generate_lesson(LessonRequest(serial, question, image, geometry, signature))
+            self.generate_lesson(
+                LessonRequest(
+                    serial,
+                    question,
+                    image,
+                    geometry,
+                    signature,
+                    session_id=self.session.session_id,
+                    history=self.session.snapshot(),
+                )
+            )
 
         elif action == InputAction.SELECT_REGION:
             self._start_selection()
@@ -1090,7 +1168,7 @@ class DesktopController:
         worker.deleteLater()
 
         pending, self._pending_lesson = self._pending_lesson, None
-        if pending is not None and self._is_current(pending.serial):
+        if pending is not None and self._owns_ui(pending):
             self._start_worker(pending)
             return
         # A cancelled worker's finished() can land inside a newer request's
@@ -1108,7 +1186,7 @@ class DesktopController:
     def _on_worker_lesson_ready(self, worker, ocr_data, steps, answer):
         """Accepts a result only if its request still owns the UI."""
         request = worker.request
-        if not self._is_current(request.serial):
+        if not self._owns_ui(request):
             logger.info("Dropping lesson for retired request %s.", request.serial)
             return
         if not self._request_matches_screen(request):
@@ -1131,10 +1209,14 @@ class DesktopController:
         self._displayed_geometry = request.geometry
         self.overlay.set_background(request.image, show=False, capture_geometry=request.geometry)
         self._on_lesson_finished(ocr_data, steps, answer)
+        # Only a lesson that was actually presented becomes context for the
+        # next question; an empty-step answer returned to IDLE above.
+        if steps:
+            self.session.record(request.question, str(answer or ""))
 
     def _on_worker_error(self, worker, error_msg):
         request = worker.request
-        if not self._is_current(request.serial):
+        if not self._owns_ui(request):
             logger.info("Dropping error for retired request %s: %s", request.serial, error_msg)
             return
         self._on_lesson_error(error_msg, request.serial)

@@ -142,6 +142,8 @@ class FloatingCompanion(QWidget):
     replay_requested = pyqtSignal()
     # Stop reading; the step stays on screen.
     stop_speech_requested = pyqtSignal()
+    # Forget this session's questions, answers, capture and lesson; start over.
+    new_session_requested = pyqtSignal()
 
     def __init__(self, screen=None) -> None:
         super().__init__()
@@ -186,9 +188,21 @@ class FloatingCompanion(QWidget):
         layout.setContentsMargins(_PADDING, 14, _PADDING, 14)
         layout.setSpacing(8)
 
+        # New session shares the status row so it stays reachable in every
+        # state, busy ones included: it is how the learner abandons a request
+        # they no longer want along with everything asked before it.
+        header = QHBoxLayout()
+        header.setSpacing(8)
         self.lbl_status = QLabel("READY")
         self.lbl_status.setObjectName("status")
-        layout.addWidget(self.lbl_status)
+        header.addWidget(self.lbl_status, stretch=1)
+        self.btn_new_session = QPushButton("New session")
+        self.btn_new_session.setToolTip(
+            "Start over: forget this session's questions and answers, and clear the screen"
+        )
+        self.btn_new_session.clicked.connect(self.new_session_requested)
+        header.addWidget(self.btn_new_session)
+        layout.addLayout(header)
 
         # The question is the whole point of the interaction, and once the
         # input dialog closes nothing else on screen records what was asked.
